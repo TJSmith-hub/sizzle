@@ -1,0 +1,90 @@
+[project]
+name = "sizzle"
+version = "0.1.0"
+description = "Self-hosted, single-user recipe manager: import by URL, structured ingredients, scaling, and aisle-grouped shopping lists."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework + server
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    # Templating & form parsing
+    "jinja2==3.1.5",
+    "python-multipart==0.0.20",
+    # Database
+    "SQLAlchemy==2.0.36",
+    # Recipe scraping (hundreds of sites + schema.org/JSON-LD fallback via wild_mode)
+    "recipe-scrapers==15.11.0",
+    # HTTP client used to fetch pages with a browser-like User-Agent
+    "httpx==0.28.1",
+]
+
+[dependency-groups]
+# Installed by `uv sync` by default; skipped in production with `uv sync --no-dev`.
+dev = [
+    "pytest==8.3.4",
+    "ruff==0.15.22",
+]
+
+[tool.uv]
+# The app is run as a module tree (uvicorn app.main:app), not installed as a
+# distributable package, so uv only manages the dependency environment.
+package = false
+
+# ---------------------------------------------------------------------------
+# Ruff — we opt into the entire rule set ("ALL") and then switch off the rules
+# that fight this project's frameworks (FastAPI, pytest), conflict with each
+# other/the formatter, or encode a style we've deliberately not taken.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # --- Conflicts (Ruff itself warns these can't be co-enabled) ---
+    "COM812",  # trailing comma — owned by the formatter, not the linter
+    "D203",    # one-blank-line-before-class — conflicts with D211
+    "D213",    # multi-line-summary-second-line — conflicts with D212
+
+    # --- Docstring completeness: we document modules and non-obvious logic,
+    #     not every small helper / route handler ---
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+
+    # --- Type-annotation completeness: the code is partially typed by intent;
+    #     FastAPI route handlers don't annotate their response return types ---
+    "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN206",
+    "ANN401",
+
+    # --- FastAPI idioms ---
+    "B008",     # function-call-in-default — required for Depends()/Form()
+    "FAST002",  # non-Annotated dependency — classic Depends() style is fine
+    "ARG001",   # unused arg — handlers must accept `request`, error handlers `exc`
+
+    # --- Exception message style (pedantic; our messages are user-facing) ---
+    "TRY003", "EM101", "EM102",
+
+    # --- Complexity / "magic value" heuristics: the parser and unit math are
+    #     inherently branchy and full of self-evident numeric constants ---
+    "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",
+
+    # --- Typing-only import shuffling: `from __future__ import annotations` is
+    #     already in use, so guarding imports under TYPE_CHECKING adds churn
+    #     for no runtime benefit here ---
+    "TC001", "TC002", "TC003",
+
+    # --- Intentional typography in strings (en dashes, curly quotes) ---
+    "RUF001", "RUF002", "RUF003",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert freely, need no docstrings/annotations, and compare literals.
+"tests/**" = ["S101", "D", "ANN", "PLR2004", "PT018", "INP001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"

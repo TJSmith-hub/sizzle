@@ -46,24 +46,31 @@ Then open <http://localhost:8000>.
 
 ### Locally (without Docker)
 
+Install [uv](https://docs.astral.sh/uv/), then:
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
-The database defaults to `./data/recipes.db`.
+`uv run` creates the virtual environment from `pyproject.toml` / `uv.lock` on
+first use (and keeps it in sync automatically). The database defaults to
+`./data/recipes.db`.
 
 ### Run the tests
 
 ```bash
-pip install -r requirements.txt
-pytest
+uv run pytest
 ```
 
 The suite covers the tricky pure-logic pieces: ingredient parsing, the grouping
 heuristic, unit conversion, cooking-fraction rounding, and aisle categorization.
+
+### Lint
+
+```bash
+uv run ruff check      # lint (see [tool.ruff] in pyproject.toml)
+uv run ruff format     # optional: auto-format
+```
 
 ---
 
