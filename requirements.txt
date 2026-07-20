@@ -1,0 +1,19 @@
+# Web framework + server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Templating & form parsing
+jinja2==3.1.5
+python-multipart==0.0.20
+
+# Database
+SQLAlchemy==2.0.36
+
+# Recipe scraping (supports hundreds of sites + schema.org/JSON-LD fallback via wild_mode)
+recipe-scrapers==15.5.0
+
+# HTTP client used to fetch pages with a browser-like User-Agent before handing HTML to recipe-scrapers
+httpx==0.28.1
+
+# --- Development / testing only ---
+pytest==8.3.4

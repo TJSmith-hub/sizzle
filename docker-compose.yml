@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: recipe-manager
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the SQLite database on the host so data survives restarts/upgrades.
+      - ./data:/data
+    environment:
+      # Path to the SQLite file inside the container (matches the mounted volume).
+      DATABASE_PATH: /data/recipes.db
+      # Default unit system for display and shopping lists: "metric" or "imperial".
+      DEFAULT_UNIT_SYSTEM: metric
+    restart: unless-stopped

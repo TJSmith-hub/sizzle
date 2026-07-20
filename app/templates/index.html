@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}All recipes · Recipe Manager{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Recipes</h1>
+    <form method="get" action="/" class="search-form" role="search">
+      <input type="search" name="q" value="{{ q }}" placeholder="Search title or tag…">
+      <button type="submit" class="btn">Search</button>
+      {% if q or active_tag %}<a href="/" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+  </div>
+
+  {% if all_tags %}
+    <div class="tag-filter">
+      {% for t in all_tags %}
+        <a class="chip {% if t.name == active_tag %}chip-active{% endif %}"
+           href="/?tag={{ t.name }}">{{ t.name }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not recipes %}
+    <div class="empty-state">
+      <h2>No recipes yet</h2>
+      <p>{% if q or active_tag %}Nothing matched your search.{% else %}Import your first recipe to get started.{% endif %}</p>
+      <p><a class="btn btn-primary" href="/recipes/add">Add a recipe</a></p>
+    </div>
+  {% else %}
+    <form method="get" action="/shopping-list" id="shopping-form">
+      <div class="toolbar">
+        <span class="muted"><span id="selected-count">0</span> selected</span>
+        <button type="submit" class="btn btn-primary" id="make-list-btn" disabled>
+          Make shopping list
+        </button>
+      </div>
+
+      <div class="recipe-grid">
+        {% for recipe in recipes %}
+          <article class="recipe-card">
+            <label class="card-select">
+              <input type="checkbox" name="recipe" value="{{ recipe.id }}" class="recipe-check">
+              <span class="sr-only">Select {{ recipe.title }}</span>
+            </label>
+            <a class="card-link" href="/recipes/{{ recipe.id }}">
+              <div class="card-thumb">
+                {% if recipe.image_url %}
+                  <img src="{{ recipe.image_url }}" alt="" loading="lazy">
+                {% else %}
+                  <div class="thumb-placeholder">🍽️</div>
+                {% endif %}
+              </div>
+              <div class="card-body">
+                <h3>{{ recipe.title }}</h3>
+                <div class="card-meta">
+                  {% if recipe.total_time %}<span>⏱ {{ recipe.total_time | minutes }}</span>{% endif %}
+                  {% if recipe.servings %}<span>🍴 {{ recipe.servings }} servings</span>{% endif %}
+                </div>
+                {% if recipe.tags %}
+                  <div class="card-tags">
+                    {% for t in recipe.tags %}<span class="chip chip-sm">{{ t.name }}</span>{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/index.js" defer></script>
+{% endblock %}

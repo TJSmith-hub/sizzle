@@ -1,0 +1,52 @@
+/* Print-optimized styles for the shopping list print view.
+   Also applied as media="print" over the app to hide chrome when printing. */
+
+@media print {
+  .site-header, .site-footer, .toolbar, .controls, .detail-actions,
+  .no-print, .form-actions { display: none !important; }
+  body { background: #fff; }
+}
+
+/* Standalone print page (/shopping-list/print) */
+.print-page {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #000;
+  background: #fff;
+  margin: 0;
+  padding: 24px 28px;
+  line-height: 1.4;
+}
+
+.print-header { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
+.print-header h1 { margin: 0; font-size: 1.6rem; }
+.print-sub { margin: 4px 0 0; font-size: .9rem; color: #333; }
+
+.print-columns { column-count: 2; column-gap: 34px; }
+
+.print-aisle { break-inside: avoid; margin-bottom: 16px; }
+.print-aisle h2 {
+  font-size: 1.05rem; margin: 0 0 6px; text-transform: uppercase;
+  letter-spacing: .04em; border-bottom: 1px solid #000; padding-bottom: 2px;
+}
+.print-aisle ul { list-style: none; margin: 0; padding: 0; }
+.print-aisle li { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; font-size: .95rem; }
+
+/* Simple square checkbox rendered without form controls */
+.box {
+  display: inline-block; width: 12px; height: 12px; flex: none;
+  border: 1.5px solid #000; border-radius: 2px; margin-top: 2px;
+}
+
+.print-btn {
+  margin-top: 24px; padding: 8px 18px; font-size: 1rem; cursor: pointer;
+  border: 1px solid #000; background: #fff; border-radius: 6px;
+}
+
+@media print {
+  .print-btn { display: none; }
+  @page { margin: 1.4cm; }
+}
+
+@media (max-width: 620px) {
+  .print-columns { column-count: 1; }
+}

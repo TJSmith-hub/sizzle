@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Add recipe · Recipe Manager{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Add a recipe</h1>
+    <p class="muted">Paste a recipe URL and we’ll import the title, image, times,
+      ingredients and steps. You’ll get a chance to review and fix the grouping
+      before it’s saved.</p>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-error" role="alert">
+      <strong>Couldn’t import that page.</strong>
+      <span>{{ error }}</span>
+    </div>
+  {% endif %}
+
+  <form method="post" action="/recipes/scrape" class="card form-stack">
+    <label for="url">Recipe URL</label>
+    <input type="url" id="url" name="url" placeholder="https://example.com/best-lasagna"
+           value="{{ url }}" required autofocus>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Import recipe</button>
+      <a href="/" class="btn btn-ghost">Cancel</a>
+    </div>
+    <p class="hint">Supported by hundreds of recipe sites. Unsupported sites fall
+      back to generic schema.org data — results may need a little cleanup on the
+      next screen.</p>
+  </form>
+{% endblock %}

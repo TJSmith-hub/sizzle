@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} · Recipe Manager{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>{{ heading }}</h1>
+    <p class="muted">Auto-grouping and parsing aren’t perfect. Rename groups, move
+      ingredients between them, and fix any lines flagged <em>unparsed</em> before saving.</p>
+  </div>
+
+  <form method="post" action="{{ action }}" id="review-form">
+    <input type="hidden" name="payload" id="payload">
+
+    <section class="card">
+      <h2>Details</h2>
+      <div class="grid-2">
+        <label class="field field-wide">
+          <span>Title</span>
+          <input type="text" id="f-title" value="{{ recipe.title or '' }}" required>
+        </label>
+        <label class="field field-wide">
+          <span>Source URL</span>
+          <input type="url" id="f-source" value="{{ recipe.source_url or '' }}">
+        </label>
+        <label class="field field-wide">
+          <span>Image URL</span>
+          <input type="url" id="f-image" value="{{ recipe.image_url or '' }}">
+        </label>
+        <label class="field">
+          <span>Servings</span>
+          <input type="number" min="1" id="f-servings" value="{{ recipe.servings or '' }}">
+        </label>
+        <label class="field">
+          <span>Prep (min)</span>
+          <input type="number" min="0" id="f-prep" value="{{ recipe.prep_time or '' }}">
+        </label>
+        <label class="field">
+          <span>Cook (min)</span>
+          <input type="number" min="0" id="f-cook" value="{{ recipe.cook_time or '' }}">
+        </label>
+        <label class="field">
+          <span>Total (min)</span>
+          <input type="number" min="0" id="f-total" value="{{ recipe.total_time or '' }}">
+        </label>
+        <label class="field field-wide">
+          <span>Tags (comma-separated)</span>
+          <input type="text" id="f-tags" value="{{ recipe.tags | join(', ') }}"
+                 placeholder="dinner, vegetarian, quick">
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Ingredient groups</h2>
+        <button type="button" class="btn" id="add-group">+ Add group</button>
+      </div>
+      <p class="hint">Unnamed group = no heading. Use the unit boxes to fix parsing;
+        clearing the quantity marks a line as unparsed (shown as raw text, not scaled).</p>
+      <div id="groups"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Instructions</h2>
+        <button type="button" class="btn" id="add-step">+ Add step</button>
+      </div>
+      <div id="steps"></div>
+    </section>
+
+    <div class="form-actions sticky-actions">
+      <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+      <a href="/" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+
+  <script type="application/json" id="recipe-data">{{ recipe_json | safe }}</script>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/review.js" defer></script>
+{% endblock %}

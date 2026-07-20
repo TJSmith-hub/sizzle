@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Shopping list · Recipe Manager{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Shopping list</h1>
+    {% if recipes %}
+      <div class="toolbar">
+        <form method="get" action="/shopping-list" class="inline-form">
+          {% for rid in recipe_ids %}<input type="hidden" name="recipe" value="{{ rid }}">{% endfor %}
+          <label class="inline-label">Units:</label>
+          <select name="system" onchange="this.form.submit()">
+            <option value="metric" {% if system == 'metric' %}selected{% endif %}>Metric</option>
+            <option value="imperial" {% if system == 'imperial' %}selected{% endif %}>Imperial</option>
+          </select>
+        </form>
+        <a class="btn btn-primary" target="_blank"
+           href="/shopping-list/print?{% for rid in recipe_ids %}recipe={{ rid }}&{% endfor %}system={{ system }}">
+          🖨 Print view
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if not recipes %}
+    <div class="empty-state">
+      <h2>No recipes selected</h2>
+      <p>Go back and tick some recipes, then choose “Make shopping list”.</p>
+      <p><a class="btn btn-primary" href="/">Back to recipes</a></p>
+    </div>
+  {% else %}
+    <p class="muted">From {{ recipes | length }} recipe{{ 's' if recipes | length != 1 }}:
+      {{ recipes | map(attribute='title') | join(', ') }}</p>
+
+    <div class="shopping" id="shopping-list" data-key="{{ recipe_ids | join('-') }}-{{ system }}">
+      {% for section in aisles %}
+        <section class="aisle">
+          <h2 class="aisle-heading">{{ section.aisle | aisle_label }}</h2>
+          <ul class="check-list">
+            {% for item in section['items'] %}
+              <li class="check-item {% if not item.parsed %}unparsed{% endif %}">
+                <label>
+                  <input type="checkbox" class="tick">
+                  <span class="qty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
+                  <span class="iname">{{ item.name }}</span>
+                </label>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/shopping.js" defer></script>
+{% endblock %}

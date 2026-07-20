@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.title }} · Recipe Manager{% endblock %}
+{% block content %}
+  <article class="recipe-detail" data-default-system="{{ default_system }}" data-recipe-id="{{ recipe.id }}">
+    <div class="detail-head">
+      {% if recipe.image_url %}
+        <img class="detail-image" src="{{ recipe.image_url }}" alt="{{ recipe.title }}">
+      {% endif %}
+      <div class="detail-heading">
+        <h1>{{ recipe.title }}</h1>
+        <div class="detail-meta">
+          {% if recipe.prep_time %}<span>Prep: {{ recipe.prep_time | minutes }}</span>{% endif %}
+          {% if recipe.cook_time %}<span>Cook: {{ recipe.cook_time | minutes }}</span>{% endif %}
+          {% if recipe.total_time %}<span>Total: {{ recipe.total_time | minutes }}</span>{% endif %}
+        </div>
+        {% if recipe.tags %}
+          <div class="card-tags">
+            {% for t in recipe.tags %}<a class="chip chip-sm" href="/?tag={{ t.name }}">{{ t.name }}</a>{% endfor %}
+          </div>
+        {% endif %}
+        <div class="detail-actions">
+          {% if recipe.source_url %}
+            <a class="btn btn-ghost" href="{{ recipe.source_url }}" target="_blank" rel="noopener">View source ↗</a>
+          {% endif %}
+          <a class="btn" href="/recipes/{{ recipe.id }}/edit">Edit</a>
+          <form method="post" action="/recipes/{{ recipe.id }}/delete"
+                onsubmit="return confirm('Delete this recipe? This cannot be undone.');">
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <span class="control-label">Servings</span>
+        <div class="stepper">
+          <button type="button" id="serv-minus" class="btn btn-round" aria-label="Fewer servings">−</button>
+          <input type="number" id="servings-input" min="1" step="1"
+                 value="{{ recipe.servings or 1 }}">
+          <button type="button" id="serv-plus" class="btn btn-round" aria-label="More servings">+</button>
+        </div>
+        {% if recipe.servings %}<span class="muted" id="serv-base">base: {{ recipe.servings }}</span>{% endif %}
+      </div>
+      <div class="control">
+        <span class="control-label">Units</span>
+        <div class="toggle" role="group" aria-label="Unit system">
+          <button type="button" class="toggle-btn" data-system="metric">Metric</button>
+          <button type="button" class="toggle-btn" data-system="imperial">Imperial</button>
+        </div>
+      </div>
+    </div>
+
+    <noscript><p class="alert alert-error">Scaling and unit conversion need JavaScript enabled.</p></noscript>
+
+    <div class="detail-columns">
+      <section class="ingredients-col">
+        <h2>Ingredients</h2>
+        <div id="ingredients"><!-- rendered by scale.js --></div>
+      </section>
+      <section class="instructions-col">
+        <h2>Instructions</h2>
+        <ol id="instructions"><!-- rendered by scale.js --></ol>
+      </section>
+    </div>
+  </article>
+
+  <script type="application/json" id="recipe-data">{{ recipe_json | safe }}</script>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/scale.js" defer></script>
+{% endblock %}
