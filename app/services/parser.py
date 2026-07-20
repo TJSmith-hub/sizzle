@@ -210,6 +210,13 @@ def _split_comma_or_prep(name: str) -> tuple[str, Optional[str]]:
     return name, None
 
 
+def _lowercase(name: Optional[str]) -> Optional[str]:
+    """Lowercase an ingredient name so imported lines read consistently."""
+    if not name:
+        return name
+    return name.lower()
+
+
 def _split_name_note(name: str) -> tuple[str, Optional[str]]:
     """Separate an ingredient name from a trailing preparation note.
 
@@ -269,7 +276,7 @@ def parse_ingredient(raw: str) -> dict:
     if quantity is None:
         # No numeric quantity -> unparsed (still fine to save/display).
         name, note = _split_name_note(_clean_name(work))
-        result["name"] = name or raw_text
+        result["name"] = _lowercase(name or raw_text)
         result["note"] = note
         return result
 
@@ -278,7 +285,7 @@ def parse_ingredient(raw: str) -> dict:
     result["quantity"] = quantity
     result["quantity_max"] = quantity_max
     result["unit"] = unit
-    result["name"] = name or None
+    result["name"] = _lowercase(name) or None
     result["note"] = note
     result["parsed"] = True
     return result

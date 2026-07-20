@@ -189,3 +189,13 @@ def test_or_within_real_prep_note_is_kept():
     r = parse_ingredient("2cm piece ginger peeled and finely chopped or grated")
     assert r["name"] == "cm piece ginger"
     assert r["note"] == "peeled and finely chopped or grated"
+
+
+def test_name_is_lowercased():
+    r = parse_ingredient("2 tbsp BBQ Sauce")
+    assert r["name"] == "bbq sauce"
+
+
+def test_unparsed_name_is_lowercased():
+    r = parse_ingredient("Salt And Pepper To Taste")
+    assert r["name"] == "salt and pepper to taste"
