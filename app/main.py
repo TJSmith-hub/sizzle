@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Recipe Manager", lifespan=lifespan)
+app = FastAPI(title="Sizzle", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 

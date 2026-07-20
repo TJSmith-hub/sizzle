@@ -1,1 +1,1 @@
-"""Recipe Manager application package."""
+"""Sizzle application package."""

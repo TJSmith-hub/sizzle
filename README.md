@@ -1,4 +1,4 @@
-# 🍳 Recipe Manager
+# 🔥 Sizzle
 
 A self-hosted, single-user recipe manager built for a home server / NAS. It
 imports recipes from a URL, keeps ingredients as **structured data** (grouped
