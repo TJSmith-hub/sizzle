@@ -10,7 +10,7 @@ python-multipart==0.0.20
 SQLAlchemy==2.0.36
 
 # Recipe scraping (supports hundreds of sites + schema.org/JSON-LD fallback via wild_mode)
-recipe-scrapers==15.5.0
+recipe-scrapers==15.11.0
 
 # HTTP client used to fetch pages with a browser-like User-Agent before handing HTML to recipe-scrapers
 httpx==0.28.1

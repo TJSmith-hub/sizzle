@@ -76,6 +76,100 @@ def _positive_int(value) -> Optional[int]:
     return n if n > 0 else None
 
 
+def _norm(text: str) -> str:
+    """Normalize a line for comparison (collapse whitespace, lowercase)."""
+    return re.sub(r"\s+", " ", text or "").strip().lower()
+
+
+def _has_sections(groups: Optional[list]) -> bool:
+    """True if at least one group carries a real section title."""
+    return bool(groups) and any(g["title"] for g in groups)
+
+
+def _native_groups(scraper) -> Optional[list]:
+    """Use recipe-scrapers' own ``ingredient_groups()`` when the site supports it.
+
+    Returns a list of ``{"title": str|None, "lines": [str, ...]}`` or None when
+    the method is unavailable or raises (some site plugins error on pages whose
+    markup no longer matches their hardcoded selectors).
+    """
+    try:
+        groups = scraper.ingredient_groups()
+    except Exception:  # noqa: BLE001 - plugins raise assorted errors
+        return None
+    out = []
+    for g in groups or []:
+        lines = [str(x) for x in getattr(g, "ingredients", []) if str(x).strip()]
+        if not lines:
+            continue
+        purpose = getattr(g, "purpose", None)
+        out.append({"title": (purpose or None), "lines": lines})
+    return out or None
+
+
+def _soup_groups(scraper, flat: list[str]) -> Optional[list]:
+    """Reconstruct sections from the page HTML by matching ingredient lists to
+    their nearest sibling heading.
+
+    Works even when the library's per-site grouping fails: we locate the
+    ``<ul>``/``<ol>`` lists whose items match the flat ingredient list, then take
+    each list's preceding-sibling heading (scoped to the same container, so we
+    never grab an unrelated page heading like "Nutrition"). Falls back to None if
+    it can't account for most of the ingredients.
+    """
+    soup = getattr(scraper, "soup", None)
+    if soup is None or not flat:
+        return None
+
+    flat_set = {_norm(x) for x in flat}
+    out = []
+    for lst in soup.find_all(["ul", "ol"]):
+        items = lst.find_all("li", recursive=False) or lst.find_all("li")
+        texts = [li.get_text(" ", strip=True) for li in items]
+        matched = [t for t in texts if _norm(t) in flat_set]
+        # Skip lists that aren't (mostly) ingredients — e.g. nav or nutrition.
+        if not matched or len(matched) < max(1, len(texts) // 2):
+            continue
+        heading = lst.find_previous_sibling(["h2", "h3", "h4", "h5", "h6"])
+        title = heading.get_text(" ", strip=True) if heading else None
+        # A heading that is itself an ingredient, or absurdly long, isn't a section.
+        if title and (len(title) > 60 or _norm(title) in flat_set):
+            title = None
+        out.append({"title": title, "lines": matched})
+
+    covered = sum(len(g["lines"]) for g in out)
+    if covered < len(flat) * 0.6:  # didn't reliably map the list — bail out
+        return None
+    return out or None
+
+
+def _build_groups(scraper, flat: list[str]) -> list[dict]:
+    """Return grouped, parsed ingredients, preferring real site sections.
+
+    Strategy (most reliable first): the library's native ``ingredient_groups()``,
+    then an HTML/soup reconstruction, then our text-only heuristic on the flat
+    list. The first strategy that actually finds titled sections wins.
+    """
+    raw = _native_groups(scraper)
+    if not _has_sections(raw):
+        soup_based = _soup_groups(scraper, flat)
+        if _has_sections(soup_based):
+            raw = soup_based
+    if not _has_sections(raw):
+        raw = [
+            {"title": g["title"], "lines": g["ingredients"]}
+            for g in group_ingredients(flat)
+        ]
+
+    return [
+        {
+            "title": g["title"],
+            "ingredients": [parse_ingredient(line) for line in g["lines"]],
+        }
+        for g in raw
+    ]
+
+
 def scrape_recipe(url: str) -> dict:
     """Scrape ``url`` and return a normalized, structured recipe dict.
 
@@ -120,15 +214,9 @@ def scrape_recipe(url: str) -> dict:
         text = _safe(scraper.instructions, default="") or ""
         instructions = [s.strip() for s in text.split("\n") if s.strip()]
 
-    # Group the flat ingredient list, then parse each line into structured fields.
-    grouped = group_ingredients([str(i) for i in ingredients])
-    groups = [
-        {
-            "title": g["title"],
-            "ingredients": [parse_ingredient(line) for line in g["ingredients"]],
-        }
-        for g in grouped
-    ]
+    # Reconstruct ingredient sections (preferring the site's own grouping), then
+    # parse each line into structured fields.
+    groups = _build_groups(scraper, [str(i) for i in ingredients])
 
     return {
         "title": title or "Untitled recipe",
