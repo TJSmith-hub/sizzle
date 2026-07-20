@@ -1,5 +1,10 @@
 # 🔥 Sizzle
 
+> **Note:** This project was built with substantial help from AI coding tools.
+> The code has been reviewed and tested, but you should read it yourself before
+> running it on anything you care about. Provided as-is under the MIT license,
+> with no warranty (see [LICENSE](LICENSE)).
+
 A self-hosted, single-user recipe manager built for a home server / NAS. It
 imports recipes from a URL, keeps ingredients as **structured data** (grouped
 into sections, parsed into quantity + unit + name), and does three things most
@@ -44,7 +49,27 @@ Then open <http://localhost:6769>.
   `docker-compose.yml` (`metric` or `imperial`), then `docker compose up -d`.
   Users can still toggle units per-recipe in the UI.
 
-### Locally (without Docker)
+### Updating
+
+Pull the latest code and rebuild:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+`--build` rebuilds the image with the new code; `-d` recreates the container.
+Your recipes live in `./data/recipes.db` on the host and are preserved across
+the rebuild. The schema is migrated automatically on startup — new columns are
+added in place, so an existing database keeps working.
+
+---
+
+## Dev
+
+Everything below is for running from source or hacking on the app.
+
+### Run locally (without Docker)
 
 Install [uv](https://docs.astral.sh/uv/), then:
 
@@ -54,7 +79,8 @@ uv run uvicorn app.main:app --reload
 
 `uv run` creates the virtual environment from `pyproject.toml` / `uv.lock` on
 first use (and keeps it in sync automatically). The database defaults to
-`./data/recipes.db`.
+`./data/recipes.db`. To update, `git pull` and run again — `uv run` re-syncs the
+environment from `uv.lock` if any dependencies changed.
 
 ### Run the tests
 
@@ -72,11 +98,9 @@ uv run ruff check      # lint (see [tool.ruff] in pyproject.toml)
 uv run ruff format     # optional: auto-format
 ```
 
----
+### Customizing
 
-## How to customize
-
-### Grocery aisle categories — `app/services/aisles.py`
+#### Grocery aisle categories — `app/services/aisles.py`
 
 This is the file to edit for your own store layout. It contains:
 
@@ -89,7 +113,7 @@ This is the file to edit for your own store layout. It contains:
 Add/remove keywords freely; to make one aisle win ties, move it earlier in
 `AISLE_ORDER`. Anything unmatched falls into `other`.
 
-### Grouping heuristic thresholds — `app/services/grouping.py`
+#### Grouping heuristic thresholds — `app/services/grouping.py`
 
 Constants at the top control how section headers are detected:
 
@@ -103,16 +127,14 @@ Constants at the top control how section headers are detected:
 The review screen always lets you fix grouping by hand, so a missed header is
 cheap — it's just one “move to group” click.
 
-### Ingredient parser & units — `app/services/parser.py`, `app/services/units.py`
+#### Ingredient parser & units — `app/services/parser.py`, `app/services/units.py`
 
 `parser.py` turns a raw line into `{quantity, quantity_max, unit, name}` (handling
 fractions, unicode fractions, mixed numbers, and ranges). `units.py` holds the
 unit synonym map and the fixed conversion factors — add a unit synonym there if
 the parser is missing one you use often.
 
----
-
-## Data model
+### Data model
 
 - **Recipe** — title, source URL, image, servings, prep/cook/total time (minutes),
   instructions (ordered JSON list), tags (many-to-many).
