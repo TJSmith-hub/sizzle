@@ -88,7 +88,7 @@ def scrape(request: Request, url: str = Form(...)):
         "review.html",
         {
             "recipe": review,
-            "recipe_json": json.dumps(review),
+            "recipe_data": review,
             "action": "/recipes",
             "heading": "Review recipe before saving",
             "submit_label": "Save recipe",
@@ -115,7 +115,7 @@ def detail(request: Request, recipe_id: int, db: Session = Depends(get_db)):
         "detail.html",
         {
             "recipe": recipe,
-            "recipe_json": json.dumps(recipe_to_detail_dict(recipe)),
+            "recipe_data": recipe_to_detail_dict(recipe),
             "default_system": default_system,
         },
     )
@@ -132,7 +132,7 @@ def edit_form(request: Request, recipe_id: int, db: Session = Depends(get_db)):
         "review.html",
         {
             "recipe": review,
-            "recipe_json": json.dumps(review),
+            "recipe_data": review,
             "action": f"/recipes/{recipe_id}/update",
             "heading": f"Edit “{recipe.title}”",
             "submit_label": "Save changes",
@@ -141,7 +141,12 @@ def edit_form(request: Request, recipe_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/recipes/{recipe_id}/update")
-def update(request: Request, recipe_id: int, db: Session = Depends(get_db), payload: str = Form(...)):
+def update(
+    request: Request,
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    payload: str = Form(...),
+):
     recipe = db.get(Recipe, recipe_id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")

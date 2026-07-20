@@ -8,8 +8,6 @@ same as the print view.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
@@ -36,7 +34,7 @@ def _all_items(db: Session) -> list[ShoppingListItem]:
     return list(db.scalars(stmt))
 
 
-def _parse_quantity(raw: str) -> Optional[float]:
+def _parse_quantity(raw: str) -> float | None:
     raw = raw.strip()
     if not raw:
         return None

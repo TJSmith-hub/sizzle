@@ -10,7 +10,6 @@ depends on the library's own networking.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 import httpx
 from recipe_scrapers import scrape_html
@@ -50,7 +49,7 @@ def _safe(fn, default=None):
     """Call a scraper method, swallowing the exceptions it raises for missing fields."""
     try:
         value = fn()
-    except Exception:
+    except Exception:  # noqa: BLE001 - scraper plugins raise assorted errors for missing fields
         return default
     return value if value is not None else default
 
@@ -58,7 +57,7 @@ def _safe(fn, default=None):
 _SERVINGS_RE = re.compile(r"\d+")
 
 
-def _parse_servings(yields: Optional[str]) -> Optional[int]:
+def _parse_servings(yields: str | None) -> int | None:
     """Extract an integer serving count from a yields string like '4 servings'."""
     if not yields:
         return None
@@ -68,7 +67,7 @@ def _parse_servings(yields: Optional[str]) -> Optional[int]:
     return int(m.group()) if m else None
 
 
-def _positive_int(value) -> Optional[int]:
+def _positive_int(value) -> int | None:
     try:
         n = int(value)
     except (TypeError, ValueError):
@@ -81,12 +80,12 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip().lower()
 
 
-def _has_sections(groups: Optional[list]) -> bool:
-    """True if at least one group carries a real section title."""
+def _has_sections(groups: list | None) -> bool:
+    """Return True if at least one group carries a real section title."""
     return bool(groups) and any(g["title"] for g in groups)
 
 
-def _native_groups(scraper) -> Optional[list]:
+def _native_groups(scraper) -> list | None:
     """Use recipe-scrapers' own ``ingredient_groups()`` when the site supports it.
 
     Returns a list of ``{"title": str|None, "lines": [str, ...]}`` or None when
@@ -107,11 +106,11 @@ def _native_groups(scraper) -> Optional[list]:
     return out or None
 
 
-def _soup_groups(scraper, flat: list[str]) -> Optional[list]:
-    """Reconstruct sections from the page HTML by matching ingredient lists to
-    their nearest sibling heading.
+def _soup_groups(scraper, flat: list[str]) -> list | None:
+    """Reconstruct sections from the page HTML via each list's sibling heading.
 
-    Works even when the library's per-site grouping fails: we locate the
+    Matches ingredient lists to their nearest sibling heading. Works even when
+    the library's per-site grouping fails: we locate the
     ``<ul>``/``<ol>`` lists whose items match the flat ingredient list, then take
     each list's preceding-sibling heading (scoped to the same container, so we
     never grab an unrelated page heading like "Nutrition"). Falls back to None if
@@ -194,7 +193,7 @@ def scrape_recipe(url: str) -> dict:
 
     try:
         scraper = scrape_html(html, org_url=url, wild_mode=True)
-    except Exception as exc:  # noqa: BLE001 - library raises many exception types
+    except Exception as exc:
         raise ScrapeError(
             "Couldn't find recipe data on that page. It may not be a recipe "
             "page, or the site's format isn't supported."

@@ -57,7 +57,7 @@ def test_to_system_metric_keeps_spoon_and_cup_units(unit):
 
 
 def test_to_system_metric_still_converts_fl_oz():
-    qty, unit = units.to_system(8, "fl_oz", "metric")
+    _qty, unit = units.to_system(8, "fl_oz", "metric")
     assert unit in ("ml", "l")
 
 

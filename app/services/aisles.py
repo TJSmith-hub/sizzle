@@ -18,7 +18,6 @@ another, place it earlier in AISLE_ORDER.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 # Print/display order of aisles. "other" should stay last as the catch-all.
 AISLE_ORDER: list[str] = [
@@ -110,12 +109,12 @@ AISLE_KEYWORDS: dict[str, list[str]] = {
 
 
 def _compile(keywords: list[str]) -> list[re.Pattern]:
-    pats = []
-    for kw in keywords:
-        # Word-boundary match with an optional plural suffix, so "tomato" matches
-        # "tomatoes" but "corn" still does NOT match "cornflour".
-        pats.append(re.compile(r"\b" + re.escape(kw) + r"(?:e?s)?\b", re.IGNORECASE))
-    return pats
+    # Word-boundary match with an optional plural suffix, so "tomato" matches
+    # "tomatoes" but "corn" still does NOT match "cornflour".
+    return [
+        re.compile(r"\b" + re.escape(kw) + r"(?:e?s)?\b", re.IGNORECASE)
+        for kw in keywords
+    ]
 
 
 # Precompile keyword patterns once, keyed by aisle.
@@ -124,7 +123,7 @@ _COMPILED: dict[str, list[re.Pattern]] = {
 }
 
 
-def categorize(name: Optional[str]) -> str:
+def categorize(name: str | None) -> str:
     """Return the aisle for an ingredient name (falls back to 'other')."""
     if not name:
         return "other"

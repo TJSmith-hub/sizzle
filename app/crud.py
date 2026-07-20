@@ -1,8 +1,6 @@
 """Database helpers for creating/updating recipes from validated payloads."""
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -86,16 +84,16 @@ def add_shopping_item(
     db: Session,
     *,
     name: str,
-    quantity: Optional[float] = None,
-    quantity_max: Optional[float] = None,
-    unit: Optional[str] = None,
-    note: Optional[str] = None,
-    source: Optional[str] = None,
+    quantity: float | None = None,
+    quantity_max: float | None = None,
+    unit: str | None = None,
+    note: str | None = None,
+    source: str | None = None,
 ) -> ShoppingListItem:
-    """Add a line to the shopping list, combining it into a matching unchecked
-    row when possible instead of always creating a new one.
+    """Add a line to the shopping list, merging into a matching row when possible.
 
-    Two rows combine when they normalize to the same ingredient name (see
+    Rather than always creating a new row, fold the new quantity into a matching
+    unchecked one. Two rows combine when they normalize to the same ingredient name (see
     ``normalize_name``) and have compatible units (same measurement type, e.g.
     both volume) -- the new quantity is summed into the existing row, converted
     into whatever unit that row already uses. Rows with no numeric quantity
@@ -116,18 +114,25 @@ def add_shopping_item(
                 continue
             if units.measurement_type(existing.unit) != mtype:
                 continue
-            add_qty = units.convert(quantity, unit, existing.unit)
-            if add_qty is None:
+            add_low = units.convert(quantity, unit, existing.unit)
+            if add_low is None:
                 continue
-            existing_val = existing.quantity
-            if existing.quantity_max is not None:
-                existing_val = existing.quantity_max
-                existing.quantity_max = None
+            # Sum ranges end-to-end rather than collapsing them: treat each side's
+            # high end as its low end when it isn't a range, add lows to lows and
+            # highs to highs, and drop the range again if it ends up degenerate.
+            add_high = add_low
             if quantity_max is not None:
                 converted_max = units.convert(quantity_max, unit, existing.unit)
                 if converted_max is not None:
-                    add_qty = converted_max
-            existing.quantity = existing_val + add_qty
+                    add_high = converted_max
+            existing_low = existing.quantity
+            existing_high = (
+                existing.quantity_max if existing.quantity_max is not None else existing.quantity
+            )
+            new_low = existing_low + add_low
+            new_high = existing_high + add_high
+            existing.quantity = new_low
+            existing.quantity_max = new_high if new_high != new_low else None
             if not existing.note and note:
                 existing.note = note
             if source and source not in (existing.source or ""):
@@ -145,9 +150,11 @@ def add_shopping_item(
 
 
 def add_recipe_to_shopping_list(db: Session, recipe: Recipe) -> int:
-    """Add every ingredient of ``recipe`` to the shopping list, combining
-    duplicates into existing unchecked rows where possible. Returns the number
-    of ingredient lines processed."""
+    """Add every ingredient of ``recipe`` to the shopping list.
+
+    Duplicates are combined into existing unchecked rows where possible. Returns
+    the number of ingredient lines processed.
+    """
     count = 0
     for group in recipe.groups:
         for ing in group.ingredients:

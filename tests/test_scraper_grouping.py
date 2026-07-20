@@ -22,7 +22,7 @@ class _FakeGroup:
 class _FakeScraper:
     """Minimal stand-in exposing the bits the grouping helpers touch."""
 
-    def __init__(self, html="", native=None, native_raises=False):
+    def __init__(self, html="", native=None, *, native_raises=False):
         self.soup = BeautifulSoup(html, "html.parser")
         self._native = native
         self._native_raises = native_raises

@@ -1,5 +1,4 @@
 """Tests for cooking-friendly rounding and fraction formatting used in scaling."""
-import pytest
 
 from app.services import units
 

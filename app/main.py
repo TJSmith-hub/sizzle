@@ -30,7 +30,7 @@ app.include_router(shopping.router)
 
 
 @app.exception_handler(404)
-async def not_found(request: Request, exc):  # noqa: ANN001
+async def not_found(request: Request, exc):
     return templates.TemplateResponse(
         request, "404.html", {}, status_code=404
     )

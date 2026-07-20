@@ -16,7 +16,6 @@ can display it verbatim and flag it for manual fixing.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from app.services.units import normalize_unit
 
@@ -47,10 +46,13 @@ _LEADING_NOISE_RE = re.compile(
 
 
 def normalize_unicode_fractions(text: str) -> str:
-    """Replace unicode fraction glyphs with ascii, inserting a space if a digit
-    immediately precedes them (so "1½" becomes "1 1/2")."""
+    """Replace unicode fraction glyphs with ascii equivalents.
+
+    Inserts a space if a digit immediately precedes the glyph (so "1½" becomes
+    "1 1/2").
+    """
     out = []
-    for i, ch in enumerate(text):
+    for ch in text:
         if ch in _UNICODE_FRACTIONS:
             if out and out[-1].isdigit():
                 out.append(" ")
@@ -60,7 +62,7 @@ def normalize_unicode_fractions(text: str) -> str:
     return "".join(out)
 
 
-def _to_float(token: str) -> Optional[float]:
+def _to_float(token: str) -> float | None:
     """Convert an int/decimal/fraction/mixed-number token to a float."""
     token = token.strip()
     if not token:
@@ -78,7 +80,7 @@ def _to_float(token: str) -> Optional[float]:
         return None
 
 
-def _extract_unit(rest: str) -> tuple[Optional[str], str]:
+def _extract_unit(rest: str) -> tuple[str | None, str]:
     """Try to consume a unit from the start of ``rest``.
 
     Returns (canonical_unit_or_None, remaining_name). Tries a two-word unit
@@ -126,7 +128,7 @@ _PREP_WORDS = {
     "torn", "snipped", "zested", "juiced", "pitted", "stemmed", "hulled",
     "blanched", "steamed", "boiled", "dissolved", "scored", "deveined",
     "shelled", "pounded", "flattened", "brushed", "squeezed", "deboned",
-    "boned", "skinned", "patted", "washed", "picked", "cleaned", "trimmed",
+    "boned", "skinned", "patted", "washed", "picked", "cleaned",
 }
 
 # Adverbs/connectors that can sit inside a trailing prep phrase, but only count
@@ -140,15 +142,17 @@ _PREP_MODIFIERS = {
 
 
 def _is_alternative(text: str) -> bool:
-    """True if a trailing fragment is an ingredient alternative ("or spinach")
-    rather than a preparation instruction. Alternatives stay part of the name so
-    that "(or spinach)" behaves the same as an inline "tamari or soy sauce".
+    """Return True if a trailing fragment is an ingredient alternative.
+
+    An alternative ("or spinach") rather than a preparation instruction stays
+    part of the name, so "(or spinach)" behaves the same as an inline
+    "tamari or soy sauce".
     """
     t = text.strip().lower()
     return t == "or" or t.startswith("or ")
 
 
-def _split_trailing_paren(name: str) -> tuple[str, Optional[str]]:
+def _split_trailing_paren(name: str) -> tuple[str, str | None]:
     """Peel a balanced parenthetical off the END of a name into a note.
 
     "garlic clove (finely minced)" -> ("garlic clove", "finely minced"). A paren
@@ -174,7 +178,7 @@ def _split_trailing_paren(name: str) -> tuple[str, Optional[str]]:
     return name, None  # unbalanced parens -> leave as-is
 
 
-def _split_comma_or_prep(name: str) -> tuple[str, Optional[str]]:
+def _split_comma_or_prep(name: str) -> tuple[str, str | None]:
     """Separate a name from a trailing prep note via a comma, else prep words."""
     name = name.strip()
     if not name:
@@ -210,14 +214,14 @@ def _split_comma_or_prep(name: str) -> tuple[str, Optional[str]]:
     return name, None
 
 
-def _lowercase(name: Optional[str]) -> Optional[str]:
+def _lowercase(name: str | None) -> str | None:
     """Lowercase an ingredient name so imported lines read consistently."""
     if not name:
         return name
     return name.lower()
 
 
-def _split_name_note(name: str) -> tuple[str, Optional[str]]:
+def _split_name_note(name: str) -> tuple[str, str | None]:
     """Separate an ingredient name from a trailing preparation note.
 
     Handles three common shapes, in order: a trailing parenthetical
@@ -251,8 +255,8 @@ def parse_ingredient(raw: str) -> dict:
     work = _LEADING_NOISE_RE.sub("", work)
 
     # Detect a leading range like "1-2 cups" / "1 to 2 cups".
-    quantity: Optional[float] = None
-    quantity_max: Optional[float] = None
+    quantity: float | None = None
+    quantity_max: float | None = None
     rest = work
 
     range_match = _RANGE_RE.match(work)

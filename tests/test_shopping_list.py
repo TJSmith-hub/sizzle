@@ -9,10 +9,10 @@ from app.services.shopping_list import build_shopping_view, normalize_name
 
 
 def _item(**kwargs):
-    defaults = dict(
-        id=1, name="Onion", quantity=None, quantity_max=None, unit=None,
-        note=None, source=None, checked=False,
-    )
+    defaults = {
+        "id": 1, "name": "Onion", "quantity": None, "quantity_max": None,
+        "unit": None, "note": None, "source": None, "checked": False,
+    }
     defaults.update(kwargs)
     return ShoppingListItem(**defaults)
 

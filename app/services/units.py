@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import re
 from fractions import Fraction
-from typing import Optional
 
 # --- Canonical units -------------------------------------------------------
 
@@ -88,7 +87,7 @@ UNIT_SYNONYMS: dict[str, str] = {
 UNIT_WORDS: set[str] = set(UNIT_SYNONYMS.keys())
 
 
-def normalize_unit(token: str) -> Optional[str]:
+def normalize_unit(token: str) -> str | None:
     """Return the canonical unit for a written token, or None if unrecognized."""
     if not token:
         return None
@@ -96,19 +95,19 @@ def normalize_unit(token: str) -> Optional[str]:
     return UNIT_SYNONYMS.get(key)
 
 
-def measurement_type(unit: Optional[str]) -> str:
+def measurement_type(unit: str | None) -> str:
     """Return the measurement type for a canonical unit ('count' when unit is None)."""
     if unit is None:
         return COUNT
     return UNIT_TYPE.get(unit, COUNT)
 
 
-def compatible(unit_a: Optional[str], unit_b: Optional[str]) -> bool:
-    """True when two units can be summed/converted (same measurement type)."""
+def compatible(unit_a: str | None, unit_b: str | None) -> bool:
+    """Return True when two units can be summed/converted (same measurement type)."""
     return measurement_type(unit_a) == measurement_type(unit_b)
 
 
-def convert(quantity: float, from_unit: Optional[str], to_unit: Optional[str]) -> Optional[float]:
+def convert(quantity: float, from_unit: str | None, to_unit: str | None) -> float | None:
     """Convert a quantity between two units of the SAME measurement type.
 
     Returns None if the units are of different types (e.g. volume vs weight) or
@@ -128,7 +127,7 @@ def convert(quantity: float, from_unit: Optional[str], to_unit: Optional[str]) -
 
 # --- Choosing a display unit for a target system ---------------------------
 
-def to_system(quantity: float, unit: Optional[str], system: str) -> tuple[float, Optional[str]]:
+def to_system(quantity: float, unit: str | None, system: str) -> tuple[float, str | None]:
     """Convert a (quantity, unit) into the most sensible unit for ``system``.
 
     Rules:
@@ -191,7 +190,7 @@ UNIT_LABELS: dict[str, str] = {
 }
 
 
-def unit_label(unit: Optional[str]) -> str:
+def unit_label(unit: str | None) -> str:
     """Human-readable label for a canonical unit ('' for count/None)."""
     if unit is None:
         return ""
@@ -204,7 +203,7 @@ def unit_label(unit: Optional[str]) -> str:
 FRACTION_UNITS = {"tsp", "tbsp", "cup"}
 
 
-def round_cooking(quantity: float, unit: Optional[str]) -> float:
+def round_cooking(quantity: float, unit: str | None) -> float:
     """Round a quantity to a sensible cooking precision for its unit.
 
     * tsp/tbsp/cup and unitless counts -> nearest 1/4.
@@ -227,7 +226,7 @@ def round_cooking(quantity: float, unit: Optional[str]) -> float:
 _FRACTION_DENOMS = (2, 3, 4, 8)
 
 
-def format_quantity(quantity: Optional[float]) -> str:
+def format_quantity(quantity: float | None) -> str:
     """Render a numeric quantity as a friendly string (e.g. 1.5 -> '1 1/2')."""
     if quantity is None:
         return ""
@@ -241,7 +240,7 @@ def format_quantity(quantity: Optional[float]) -> str:
         return str(whole)
 
     # Try to snap the fractional part to a small cooking fraction.
-    best: Optional[Fraction] = None
+    best: Fraction | None = None
     best_err = 1e9
     for denom in _FRACTION_DENOMS:
         num = round(frac * denom)
@@ -255,8 +254,7 @@ def format_quantity(quantity: Optional[float]) -> str:
 
     # If no clean fraction is close enough, fall back to a trimmed decimal.
     if best is None or best_err > 0.06:
-        text = f"{quantity:.2f}".rstrip("0").rstrip(".")
-        return text
+        return f"{quantity:.2f}".rstrip("0").rstrip(".")
 
     if best.numerator >= best.denominator:  # rounded up to a whole
         whole += best.numerator // best.denominator

@@ -6,18 +6,16 @@ validate and normalize that payload before it is written to the database.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field, field_validator
 
 
 class IngredientIn(BaseModel):
     raw_text: str = Field(..., min_length=1)
-    quantity: Optional[float] = None
-    quantity_max: Optional[float] = None
-    unit: Optional[str] = None
-    name: Optional[str] = None
-    note: Optional[str] = None
+    quantity: float | None = None
+    quantity_max: float | None = None
+    unit: str | None = None
+    name: str | None = None
+    note: str | None = None
     parsed: bool = False
 
     @field_validator("unit", "name", "note", mode="before")
@@ -35,7 +33,7 @@ class IngredientIn(BaseModel):
 
 class GroupIn(BaseModel):
     # Empty / whitespace-only title means the default (ungrouped) section.
-    title: Optional[str] = None
+    title: str | None = None
     ingredients: list[IngredientIn] = Field(default_factory=list)
 
     @field_validator("title", mode="before")
@@ -48,12 +46,12 @@ class GroupIn(BaseModel):
 
 class RecipeIn(BaseModel):
     title: str = Field(..., min_length=1)
-    source_url: Optional[str] = None
-    image_url: Optional[str] = None
-    servings: Optional[int] = Field(default=None, ge=1)
-    prep_time: Optional[int] = Field(default=None, ge=0)
-    cook_time: Optional[int] = Field(default=None, ge=0)
-    total_time: Optional[int] = Field(default=None, ge=0)
+    source_url: str | None = None
+    image_url: str | None = None
+    servings: int | None = Field(default=None, ge=1)
+    prep_time: int | None = Field(default=None, ge=0)
+    cook_time: int | None = Field(default=None, ge=0)
+    total_time: int | None = Field(default=None, ge=0)
     instructions: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     groups: list[GroupIn] = Field(default_factory=list)
@@ -79,11 +77,11 @@ class RecipeIn(BaseModel):
             return []
         seen: set[str] = set()
         out: list[str] = []
-        for t in v:
-            if not isinstance(t, str):
+        for raw in v:
+            if not isinstance(raw, str):
                 continue
-            t = t.strip().lower()
-            if t and t not in seen:
-                seen.add(t)
-                out.append(t)
+            tag = raw.strip().lower()
+            if tag and tag not in seen:
+                seen.add(tag)
+                out.append(tag)
         return out

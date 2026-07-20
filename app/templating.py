@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from fastapi.templating import Jinja2Templates
 
@@ -13,7 +12,7 @@ _TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 
-def _minutes(value: Optional[int]) -> str:
+def _minutes(value: int | None) -> str:
     """Render minutes as e.g. '1 hr 30 min'."""
     if not value:
         return ""

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 from app.models import ShoppingListItem
 from app.services import units
@@ -24,7 +23,7 @@ _NOISE_WORDS_RE = re.compile(
 )
 
 
-def normalize_name(name: Optional[str]) -> str:
+def normalize_name(name: str | None) -> str:
     """Normalize an ingredient name for merge matching.
 
     Lowercases, drops parentheticals and common prep/size adjectives, strips
@@ -53,12 +52,12 @@ class DisplayItem:
 
     id: int
     name: str
-    note: Optional[str]
-    source: Optional[str]
+    note: str | None
+    source: str | None
     checked: bool
-    quantity: Optional[float]
-    quantity_max: Optional[float]
-    unit: Optional[str]
+    quantity: float | None
+    quantity_max: float | None
+    unit: str | None
 
     def display_quantity(self) -> str:
         if self.quantity is None:

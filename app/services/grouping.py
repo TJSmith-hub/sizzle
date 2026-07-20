@@ -23,7 +23,6 @@ ingredient like "salt" into its own section.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from app.services.units import UNIT_WORDS
 
@@ -80,11 +79,11 @@ def is_header(line: str) -> bool:
 
     # Rule 4 (opt-in): short line, no unit words -> treat as a header. This is
     # disabled by default because it misclassifies bare ingredients ("salt").
-    if ENABLE_SHORT_PHRASE_RULE:
-        if len(text) <= HEADER_MAX_LEN and not _contains_unit_word(text):
-            return True
-
-    return False
+    return (
+        ENABLE_SHORT_PHRASE_RULE
+        and len(text) <= HEADER_MAX_LEN
+        and not _contains_unit_word(text)
+    )
 
 
 def _clean_title(header_line: str) -> str:

@@ -73,7 +73,7 @@
     </div>
   </form>
 
-  <script type="application/json" id="recipe-data">{{ recipe_json | safe }}</script>
+  <script type="application/json" id="recipe-data">{{ recipe_data | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
