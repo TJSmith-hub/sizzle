@@ -58,6 +58,11 @@ TO_BASE: dict[str, float] = {
 METRIC_UNITS = {"ml", "l", "g", "kg"}
 IMPERIAL_UNITS = {"tsp", "tbsp", "cup", "fl_oz", "oz", "lb"}
 
+# Spoon/cup measures read naturally in metric recipes too (a "tsp of salt" isn't
+# converted to ml in everyday use), so metric mode leaves them as-is rather than
+# forcing a conversion to ml/l.
+VOLUME_KEEP_FOR_METRIC = {"tsp", "tbsp", "cup"}
+
 # Map many written forms -> canonical unit. Longer / more specific keys are
 # matched first (see ``normalize_unit``). Keep additions lowercase.
 UNIT_SYNONYMS: dict[str, str] = {
@@ -141,6 +146,8 @@ def to_system(quantity: float, unit: Optional[str], system: str) -> tuple[float,
     want_metric = system == "metric"
 
     if mtype == VOLUME:
+        if want_metric and unit in VOLUME_KEEP_FOR_METRIC:
+            return quantity, unit
         base_ml = quantity * TO_BASE[unit]
         if want_metric:
             # ml, promote to litres at >= 1000 ml.

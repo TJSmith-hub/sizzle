@@ -19,6 +19,9 @@
   };
   const LABELS = { tsp: 'tsp', tbsp: 'tbsp', cup: 'cup', fl_oz: 'fl oz', ml: 'ml', l: 'l', g: 'g', kg: 'kg', oz: 'oz', lb: 'lb' };
   const FRACTION_UNITS = new Set(['tsp', 'tbsp', 'cup']);
+  // Spoon/cup measures read naturally in metric recipes too - metric mode
+  // leaves them as-is rather than forcing a conversion to ml/l (mirrors units.py).
+  const VOLUME_KEEP_FOR_METRIC = new Set(['tsp', 'tbsp', 'cup']);
 
   function mtype(u) { return u == null ? 'count' : (UNIT_TYPE[u] || 'count'); }
 
@@ -27,6 +30,7 @@
     if (t === 'count' || unit == null) return [qty, unit];
     const metric = system === 'metric';
     if (t === 'volume') {
+      if (metric && VOLUME_KEEP_FOR_METRIC.has(unit)) return [qty, unit];
       const ml = qty * TO_BASE[unit];
       if (metric) return ml >= 1000 ? [ml / 1000, 'l'] : [ml, 'ml'];
       for (const u of ['cup', 'fl_oz', 'tbsp', 'tsp']) {

@@ -48,6 +48,25 @@ def test_to_system_imperial_volume_picks_cup():
     assert qty > 0
 
 
+@pytest.mark.parametrize("unit", ["tsp", "tbsp", "cup"])
+def test_to_system_metric_keeps_spoon_and_cup_units(unit):
+    # Spoon/cup measures read naturally in metric recipes -- don't force ml/l.
+    qty, out_unit = units.to_system(2, unit, "metric")
+    assert out_unit == unit
+    assert qty == 2
+
+
+def test_to_system_metric_still_converts_fl_oz():
+    qty, unit = units.to_system(8, "fl_oz", "metric")
+    assert unit in ("ml", "l")
+
+
+def test_to_system_imperial_still_converts_ml_to_spoon_units():
+    qty, unit = units.to_system(4.92892, "ml", "imperial")
+    assert unit == "tsp"
+    assert qty == pytest.approx(1.0, rel=1e-3)
+
+
 def test_to_system_count_unchanged():
     assert units.to_system(3, None, "metric") == (3, None)
 
