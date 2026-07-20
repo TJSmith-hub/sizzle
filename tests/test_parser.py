@@ -168,3 +168,24 @@ def test_midname_parenthetical_left_alone():
     r = parse_ingredient("1 can (400g) chopped tomatoes")
     assert r["name"] == "can (400g) chopped tomatoes"
     assert r["note"] is None
+
+
+def test_parenthetical_alternative_stays_in_name():
+    # "(or spinach)" is an alternative ingredient, not a prep note -- keep it in
+    # the name so it matches the inline "tamari or soy sauce" behaviour.
+    r = parse_ingredient("100g pak choi (or spinach)")
+    assert r["name"] == "pak choi (or spinach)"
+    assert r["note"] is None
+
+
+def test_inline_or_alternative_stays_in_name():
+    r = parse_ingredient("2 tsp tamari or soy sauce")
+    assert r["name"] == "tamari or soy sauce"
+    assert r["note"] is None
+
+
+def test_or_within_real_prep_note_is_kept():
+    # Here "or grated" is genuinely part of the preparation.
+    r = parse_ingredient("2cm piece ginger peeled and finely chopped or grated")
+    assert r["name"] == "cm piece ginger"
+    assert r["note"] == "peeled and finely chopped or grated"

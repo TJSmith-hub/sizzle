@@ -139,11 +139,21 @@ _PREP_MODIFIERS = {
 }
 
 
+def _is_alternative(text: str) -> bool:
+    """True if a trailing fragment is an ingredient alternative ("or spinach")
+    rather than a preparation instruction. Alternatives stay part of the name so
+    that "(or spinach)" behaves the same as an inline "tamari or soy sauce".
+    """
+    t = text.strip().lower()
+    return t == "or" or t.startswith("or ")
+
+
 def _split_trailing_paren(name: str) -> tuple[str, Optional[str]]:
     """Peel a balanced parenthetical off the END of a name into a note.
 
     "garlic clove (finely minced)" -> ("garlic clove", "finely minced"). A paren
-    that isn't at the end (e.g. "1 can (400g) tomatoes") is left untouched.
+    that isn't at the end (e.g. "1 can (400g) tomatoes") is left untouched, and a
+    parenthetical alternative ("pak choi (or spinach)") stays in the name.
     """
     name = name.strip()
     if not name.endswith(")"):
@@ -158,7 +168,7 @@ def _split_trailing_paren(name: str) -> tuple[str, Optional[str]]:
             if depth == 0:
                 inside = name[idx + 1 : -1].strip(" ,;")
                 head = name[:idx].strip(" ,")
-                if head and inside:
+                if head and inside and not _is_alternative(inside):
                     return head, inside
                 return name, None
     return name, None  # unbalanced parens -> leave as-is
@@ -175,7 +185,8 @@ def _split_comma_or_prep(name: str) -> tuple[str, Optional[str]]:
         head, _, tail = name.partition(",")
         head = head.strip(" ,")
         tail = tail.strip(" ,")
-        if head:
+        # "onion, or shallot" is an alternative ingredient -> keep the whole name.
+        if head and not _is_alternative(tail):
             return head, (tail or None)
 
     # Otherwise peel a trailing run of prep words (must include a real prep word).
@@ -194,7 +205,7 @@ def _split_comma_or_prep(name: str) -> tuple[str, Optional[str]]:
     if saw_prep and 0 < i < len(tokens):
         head = " ".join(tokens[:i]).strip(" ,")
         tail = " ".join(tokens[i:]).strip(" ,")
-        if head:
+        if head and not _is_alternative(tail):
             return head, (tail or None)
     return name, None
 
