@@ -17,9 +17,10 @@ class IngredientIn(BaseModel):
     quantity_max: Optional[float] = None
     unit: Optional[str] = None
     name: Optional[str] = None
+    note: Optional[str] = None
     parsed: bool = False
 
-    @field_validator("unit", "name", mode="before")
+    @field_validator("unit", "name", "note", mode="before")
     @classmethod
     def _empty_to_none(cls, v):
         if isinstance(v, str) and v.strip() == "":

@@ -35,6 +35,7 @@ def _apply_groups(recipe: Recipe, data: RecipeIn) -> None:
                     quantity_max=ing.quantity_max,
                     unit=ing.unit,
                     name=ing.name,
+                    note=ing.note,
                     parsed=bool(ing.parsed and ing.quantity is not None),
                     position=i_pos,
                 )

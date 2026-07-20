@@ -42,3 +42,21 @@ def init_db() -> None:
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _ensure_columns()
+
+
+def _ensure_columns() -> None:
+    """Add columns introduced after a database was first created.
+
+    ``create_all`` only creates missing *tables*, never alters existing ones, so
+    a lightweight ADD COLUMN keeps older SQLite files working across upgrades.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    if "ingredients" not in inspector.get_table_names():
+        return
+    columns = {c["name"] for c in inspector.get_columns("ingredients")}
+    if "note" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE ingredients ADD COLUMN note VARCHAR(300)"))

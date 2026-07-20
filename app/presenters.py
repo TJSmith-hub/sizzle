@@ -18,6 +18,7 @@ def ingredient_to_dict(ing: Ingredient) -> dict:
         "quantity_max": ing.quantity_max,
         "unit": ing.unit,
         "name": ing.name,
+        "note": ing.note,
         "parsed": bool(ing.parsed),
     }
 

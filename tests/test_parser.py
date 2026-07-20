@@ -110,3 +110,61 @@ def test_empty_line():
     r = parse_ingredient("   ")
     assert r["parsed"] is False
     assert r["raw_text"] == ""
+
+
+def test_note_split_on_comma():
+    r = parse_ingredient("1 onion, finely chopped")
+    assert r["quantity"] == 1
+    assert r["unit"] is None
+    assert r["name"] == "onion"
+    assert r["note"] == "finely chopped"
+
+
+def test_note_split_without_comma():
+    r = parse_ingredient("1 garlic clove finely chopped")
+    assert r["name"] == "garlic clove"
+    assert r["note"] == "finely chopped"
+
+
+def test_note_split_with_unit():
+    r = parse_ingredient("200 g chicken breast, diced")
+    assert r["unit"] == "g"
+    assert r["name"] == "chicken breast"
+    assert r["note"] == "diced"
+
+
+def test_note_absent_when_no_prep():
+    r = parse_ingredient("2 cups flour")
+    assert r["name"] == "flour"
+    assert r["note"] is None
+
+
+def test_leading_modifier_stays_in_name():
+    # "chopped" here modifies the ingredient itself, not a trailing prep note.
+    r = parse_ingredient("400 g chopped tomatoes")
+    assert r["name"] == "chopped tomatoes"
+    assert r["note"] is None
+
+
+def test_ripe_adjective_not_treated_as_note():
+    r = parse_ingredient("2 very ripe bananas")
+    assert r["name"] == "very ripe bananas"
+    assert r["note"] is None
+
+
+def test_multiword_prep_phrase():
+    r = parse_ingredient("2 tomatoes peeled and diced")
+    assert r["name"] == "tomatoes"
+    assert r["note"] == "peeled and diced"
+
+
+def test_note_split_trailing_parenthetical():
+    r = parse_ingredient("2 garlic cloves (finely minced)")
+    assert r["name"] == "garlic cloves"
+    assert r["note"] == "finely minced"
+
+
+def test_midname_parenthetical_left_alone():
+    r = parse_ingredient("1 can (400g) chopped tomatoes")
+    assert r["name"] == "can (400g) chopped tomatoes"
+    assert r["note"] is None

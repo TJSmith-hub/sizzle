@@ -133,6 +133,8 @@ class Ingredient(Base):
     quantity_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # range high end
     unit: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     name: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    # Trailing preparation note split off from the name ("finely chopped").
+    note: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
 
     # True when a numeric quantity was successfully parsed (so it can be scaled).
     parsed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

@@ -1,11 +1,12 @@
 """Parse a raw ingredient line into structured quantity + unit + name.
 
-Output is a dict with keys: raw_text, quantity, quantity_max, unit, name, parsed.
+Output is a dict with keys: raw_text, quantity, quantity_max, unit, name, note, parsed.
 
 * ``quantity``      low end of a range, or the single value (float, or None)
 * ``quantity_max``  high end when the line was a range like "1-2" (else None)
 * ``unit``          canonical unit code (see units.py) or None for count items
-* ``name``          the ingredient name (best effort; may equal the whole line)
+* ``name``          the ingredient itself (best effort; may equal the whole line)
+* ``note``          a trailing preparation note ("finely chopped"), or None
 * ``parsed``        True only when a numeric quantity was extracted
 
 The parser never raises and never blocks saving: if it can't find a quantity it
@@ -114,6 +115,105 @@ def _clean_name(name: str) -> str:
     return name.strip(" ,")
 
 
+# Words that, appearing at the END of an ingredient name, mark a preparation
+# note ("finely chopped", "peeled and diced") rather than the ingredient itself.
+_PREP_WORDS = {
+    "chopped", "minced", "sliced", "diced", "grated", "shredded", "crushed",
+    "crumbled", "melted", "softened", "beaten", "whisked", "peeled", "seeded",
+    "deseeded", "cored", "trimmed", "halved", "quartered", "cubed", "julienned",
+    "mashed", "drained", "rinsed", "cooked", "toasted", "roasted", "cooled",
+    "warmed", "chilled", "thawed", "sifted", "packed", "divided", "separated",
+    "torn", "snipped", "zested", "juiced", "pitted", "stemmed", "hulled",
+    "blanched", "steamed", "boiled", "dissolved", "scored", "deveined",
+    "shelled", "pounded", "flattened", "brushed", "squeezed", "deboned",
+    "boned", "skinned", "patted", "washed", "picked", "cleaned", "trimmed",
+}
+
+# Adverbs/connectors that can sit inside a trailing prep phrase, but only count
+# as note material when a real prep word is also present in that trailing run
+# (so "very ripe banana" is left alone, but "finely chopped" is peeled off).
+_PREP_MODIFIERS = {
+    "finely", "roughly", "coarsely", "thinly", "thickly", "freshly", "lightly",
+    "well", "very", "and", "or", "then", "plus", "slightly", "evenly",
+    "preferably", "ideally", "about",
+}
+
+
+def _split_trailing_paren(name: str) -> tuple[str, Optional[str]]:
+    """Peel a balanced parenthetical off the END of a name into a note.
+
+    "garlic clove (finely minced)" -> ("garlic clove", "finely minced"). A paren
+    that isn't at the end (e.g. "1 can (400g) tomatoes") is left untouched.
+    """
+    name = name.strip()
+    if not name.endswith(")"):
+        return name, None
+    depth = 0
+    for idx in range(len(name) - 1, -1, -1):
+        ch = name[idx]
+        if ch == ")":
+            depth += 1
+        elif ch == "(":
+            depth -= 1
+            if depth == 0:
+                inside = name[idx + 1 : -1].strip(" ,;")
+                head = name[:idx].strip(" ,")
+                if head and inside:
+                    return head, inside
+                return name, None
+    return name, None  # unbalanced parens -> leave as-is
+
+
+def _split_comma_or_prep(name: str) -> tuple[str, Optional[str]]:
+    """Separate a name from a trailing prep note via a comma, else prep words."""
+    name = name.strip()
+    if not name:
+        return name, None
+
+    # Strong signal: a comma separates the ingredient from its preparation.
+    if "," in name:
+        head, _, tail = name.partition(",")
+        head = head.strip(" ,")
+        tail = tail.strip(" ,")
+        if head:
+            return head, (tail or None)
+
+    # Otherwise peel a trailing run of prep words (must include a real prep word).
+    tokens = name.split()
+    i = len(tokens)
+    saw_prep = False
+    while i > 0:
+        word = tokens[i - 1].lower().strip(".,;:()")
+        if word in _PREP_WORDS:
+            saw_prep = True
+            i -= 1
+        elif word in _PREP_MODIFIERS and saw_prep:
+            i -= 1
+        else:
+            break
+    if saw_prep and 0 < i < len(tokens):
+        head = " ".join(tokens[:i]).strip(" ,")
+        tail = " ".join(tokens[i:]).strip(" ,")
+        if head:
+            return head, (tail or None)
+    return name, None
+
+
+def _split_name_note(name: str) -> tuple[str, Optional[str]]:
+    """Separate an ingredient name from a trailing preparation note.
+
+    Handles three common shapes, in order: a trailing parenthetical
+    ("garlic clove (finely minced)"), a comma ("garlic clove, finely chopped"),
+    and a trailing run of prep words ("garlic clove finely chopped"). The name is
+    never reduced to empty -- if the whole thing reads like prep, it stays as the
+    name for the user to fix on the review screen.
+    """
+    head, paren_note = _split_trailing_paren(name)
+    name, note = _split_comma_or_prep(head)
+    notes = [n.strip(" ,;") for n in (note, paren_note) if n and n.strip(" ,;")]
+    return name, ("; ".join(notes) if notes else None)
+
+
 def parse_ingredient(raw: str) -> dict:
     """Parse one ingredient line into structured fields (see module docstring)."""
     raw_text = (raw or "").strip()
@@ -123,6 +223,7 @@ def parse_ingredient(raw: str) -> dict:
         "quantity_max": None,
         "unit": None,
         "name": raw_text or None,
+        "note": None,
         "parsed": False,
     }
     if not raw_text:
@@ -156,13 +257,17 @@ def parse_ingredient(raw: str) -> dict:
 
     if quantity is None:
         # No numeric quantity -> unparsed (still fine to save/display).
-        result["name"] = _clean_name(work) or raw_text
+        name, note = _split_name_note(_clean_name(work))
+        result["name"] = name or raw_text
+        result["note"] = note
         return result
 
     unit, name = _extract_unit(rest)
+    name, note = _split_name_note(_clean_name(name))
     result["quantity"] = quantity
     result["quantity_max"] = quantity_max
     result["unit"] = unit
-    result["name"] = _clean_name(name) or None
+    result["name"] = name or None
+    result["note"] = note
     result["parsed"] = True
     return result

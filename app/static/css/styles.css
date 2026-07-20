@@ -124,7 +124,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #f0c9b6; border-c
 .group-head input { flex: 1; font-weight: 600; }
 .group-controls { display: flex; gap: 6px; }
 .ing-rows { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
-.ing-row { display: grid; grid-template-columns: 70px 90px 1fr auto; gap: 8px; align-items: center; }
+.ing-row { display: grid; grid-template-columns: 70px 90px 1fr 1fr auto; gap: 8px; align-items: center; }
 .ing-row.is-unparsed { background: #fff7ed; border: 1px dashed #fdba74; border-radius: 6px; padding: 6px; }
 .ing-row .raw { grid-column: 1 / -1; font-size: .78rem; color: var(--muted); }
 .ing-row .flag { grid-column: 1 / -1; font-size: .74rem; color: #c2410c; }
@@ -159,6 +159,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #f0c9b6; border-c
 .ingredient-list { list-style: none; margin: 0; padding: 0; }
 .ingredient-list li { padding: 5px 0; border-bottom: 1px dashed var(--line); }
 .ingredient-list .amount { font-weight: 600; }
+.ingredient-list .prep { color: var(--muted); }
 .ingredient-list .note { color: var(--muted); font-size: .8rem; margin-left: 4px; }
 #instructions { padding-left: 22px; }
 #instructions li { margin-bottom: 12px; }
@@ -181,5 +182,6 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #f0c9b6; border-c
   .field-wide { grid-column: span 2; }
   .shopping { column-count: 1; }
   .ing-row { grid-template-columns: 60px 80px 1fr; }
+  .ing-row .name-in, .ing-row .note-in { grid-column: 1 / -1; }
   .ing-row .row-controls { grid-column: 1 / -1; }
 }

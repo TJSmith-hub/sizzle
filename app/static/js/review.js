@@ -19,6 +19,7 @@
       quantity_max: i.quantity_max,
       unit: i.unit || '',
       name: i.name || '',
+      note: i.note || '',
       parsed: !!i.parsed,
     })),
   }));
@@ -85,7 +86,7 @@
       // --- group footer ---
       const addIng = el('button', { type: 'button', class: 'btn btn-xs', text: '+ Add ingredient' });
       addIng.addEventListener('click', () => {
-        g.ingredients.push({ raw_text: '', quantity: null, quantity_max: null, unit: '', name: '', parsed: false });
+        g.ingredients.push({ raw_text: '', quantity: null, quantity_max: null, unit: '', name: '', note: '', parsed: false });
         renderGroups();
       });
       const foot = el('div', { class: 'group-foot' }, [addIng]);
@@ -112,9 +113,13 @@
     });
     unit.addEventListener('change', () => { ing.unit = unit.value; });
 
-    const name = el('input', { type: 'text', placeholder: 'ingredient name' });
+    const name = el('input', { type: 'text', class: 'name-in', placeholder: 'ingredient name' });
     name.value = ing.name || '';
     name.addEventListener('input', () => { ing.name = name.value; });
+
+    const note = el('input', { type: 'text', class: 'note-in', placeholder: 'prep note (e.g. finely chopped)' });
+    note.value = ing.note || '';
+    note.addEventListener('input', () => { ing.note = note.value; });
 
     // controls: up / down / move-to-group / delete
     const up = el('button', { type: 'button', class: 'btn btn-xs', text: '↑' });
@@ -151,7 +156,7 @@
     const flag = el('span', { class: 'flag' });
     flag.textContent = ing.parsed ? '' : (ing.raw_text ? 'Unparsed — shown as raw text, not scaled' : '');
 
-    const row = el('div', { class: 'ing-row' + (ing.parsed ? '' : ' is-unparsed') }, [qty, unit, name, controls, raw, flag]);
+    const row = el('div', { class: 'ing-row' + (ing.parsed ? '' : ' is-unparsed') }, [qty, unit, name, note, controls, raw, flag]);
     return row;
   }
 
@@ -232,6 +237,7 @@
                 quantity_max: i.quantity_max != null ? i.quantity_max : null,
                 unit: i.unit || null,
                 name: (i.name || '').trim() || null,
+                note: (i.note || '').trim() || null,
                 parsed: parsed,
               };
             }),

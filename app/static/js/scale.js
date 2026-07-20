@@ -107,7 +107,7 @@
 
   function renderIngredientText(ing) {
     if (!ing.parsed || ing.quantity == null) {
-      return { amount: '', unit: '', name: ing.raw_text, note: 'as written' };
+      return { amount: '', unit: '', name: ing.raw_text, prep: '', note: 'as written' };
     }
     let qty = scaleOne(ing.quantity);
     let [q, u] = toSystem(qty, ing.unit, system);
@@ -119,7 +119,7 @@
       amount += '–' + formatQuantity(qm);
       u = um;
     }
-    return { amount, unit: LABELS[u] || '', name: ing.name || ing.raw_text, note: '' };
+    return { amount, unit: LABELS[u] || '', name: ing.name || ing.raw_text, prep: ing.note || '', note: '' };
   }
 
   function render() {
@@ -145,6 +145,12 @@
           li.appendChild(a);
         }
         li.appendChild(document.createTextNode(r.name));
+        if (r.prep) {
+          const p = document.createElement('span');
+          p.className = 'prep';
+          p.textContent = ', ' + r.prep;
+          li.appendChild(p);
+        }
         if (r.note) {
           const n = document.createElement('span');
           n.className = 'note';
