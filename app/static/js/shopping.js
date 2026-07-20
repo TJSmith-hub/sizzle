@@ -1,28 +1,26 @@
-// Shopping list: tick items off and remember checked state per list in localStorage.
+// Shopping list: tick items off without a full page reload, and toggle the
+// inline edit form for a row. Checked state is persisted server-side (see
+// routers/shopping.py toggle_item), not in localStorage -- the list is now a
+// shared, durable record rather than a per-browser view.
 (function () {
   const list = document.getElementById('shopping-list');
   if (!list) return;
 
-  const storeKey = 'shopping:' + (list.dataset.key || 'default');
-  let checked = {};
-  try {
-    checked = JSON.parse(localStorage.getItem(storeKey) || '{}');
-  } catch (e) {
-    checked = {};
-  }
-
-  const items = Array.from(list.querySelectorAll('.check-item'));
-  items.forEach((li, idx) => {
+  list.querySelectorAll('.check-item').forEach((li) => {
+    const id = li.dataset.itemId;
     const box = li.querySelector('.tick');
-    const name = (li.querySelector('.iname')?.textContent || '') + '#' + idx;
-    if (checked[name]) {
-      box.checked = true;
-      li.classList.add('checked');
-    }
+
     box.addEventListener('change', () => {
       li.classList.toggle('checked', box.checked);
-      checked[name] = box.checked;
-      localStorage.setItem(storeKey, JSON.stringify(checked));
+      fetch(`/shopping-list/items/${id}/toggle`, { method: 'POST' }).catch(() => {
+        // Network hiccup: reload so the checkbox reflects the real state.
+        window.location.reload();
+      });
     });
+
+    const editBtn = li.querySelector('.edit-toggle');
+    const cancelBtn = li.querySelector('.edit-cancel');
+    editBtn?.addEventListener('click', () => li.classList.add('editing'));
+    cancelBtn?.addEventListener('click', () => li.classList.remove('editing'));
   });
 })();

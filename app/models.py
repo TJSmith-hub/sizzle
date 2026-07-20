@@ -142,3 +142,28 @@ class Ingredient(Base):
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     group: Mapped[IngredientGroup] = relationship(back_populates="ingredients")
+
+
+class ShoppingListItem(Base):
+    """A single persistent shopping-list line item.
+
+    There is one running list (single-user app), stored as discrete rows rather
+    than merged/summed across recipes -- that keeps every row independently
+    editable and deletable instead of tangling checkbox/edit state across a
+    merged quantity. ``source`` is a denormalized snapshot of the recipe title
+    it came from (or None for a manually-added item), so the list still reads
+    sensibly even if that recipe is later edited or deleted.
+    """
+
+    __tablename__ = "shopping_list_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(300), nullable=False)
+    quantity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    quantity_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    unit: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    checked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)

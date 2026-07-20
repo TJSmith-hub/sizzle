@@ -3,46 +3,91 @@
 {% block content %}
   <div class="page-head">
     <h1>Shopping list</h1>
-    {% if recipes %}
-      <div class="toolbar">
-        <form method="get" action="/shopping-list" class="inline-form">
-          {% for rid in recipe_ids %}<input type="hidden" name="recipe" value="{{ rid }}">{% endfor %}
-          <label class="inline-label">Units:</label>
-          <select name="system" onchange="this.form.submit()">
-            <option value="metric" {% if system == 'metric' %}selected{% endif %}>Metric</option>
-            <option value="imperial" {% if system == 'imperial' %}selected{% endif %}>Imperial</option>
-          </select>
+    <div class="toolbar">
+      <form method="get" action="/shopping-list" class="inline-form">
+        <label class="inline-label">Units:</label>
+        <select name="system" onchange="this.form.submit()">
+          <option value="metric" {% if system == 'metric' %}selected{% endif %}>Metric</option>
+          <option value="imperial" {% if system == 'imperial' %}selected{% endif %}>Imperial</option>
+        </select>
+      </form>
+      {% if has_items %}
+        <a class="btn" target="_blank" href="/shopping-list/print?system={{ system }}">🖨 Print view</a>
+        <form method="post" action="/shopping-list/clear-checked">
+          <button type="submit" class="btn btn-ghost">Clear checked</button>
         </form>
-        <a class="btn btn-primary" target="_blank"
-           href="/shopping-list/print?{% for rid in recipe_ids %}recipe={{ rid }}&{% endfor %}system={{ system }}">
-          🖨 Print view
-        </a>
-      </div>
-    {% endif %}
+        <form method="post" action="/shopping-list/clear-all"
+              onsubmit="return confirm('Clear the entire shopping list? This cannot be undone.');">
+          <button type="submit" class="btn btn-danger">Clear all</button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 
-  {% if not recipes %}
+  <form method="post" action="/shopping-list/items" class="add-item-form card">
+    <input type="text" name="quantity" placeholder="qty" class="qty-in" inputmode="decimal">
+    <select name="unit">
+      <option value="">(count)</option>
+      <option value="tsp">tsp</option>
+      <option value="tbsp">tbsp</option>
+      <option value="cup">cup</option>
+      <option value="fl_oz">fl oz</option>
+      <option value="ml">ml</option>
+      <option value="l">l</option>
+      <option value="g">g</option>
+      <option value="kg">kg</option>
+      <option value="oz">oz</option>
+      <option value="lb">lb</option>
+    </select>
+    <input type="text" name="name" placeholder="Add an item…" required class="name-in">
+    <input type="text" name="note" placeholder="note (optional)" class="note-in">
+    <button type="submit" class="btn btn-primary">+ Add</button>
+  </form>
+
+  {% if not has_items %}
     <div class="empty-state">
-      <h2>No recipes selected</h2>
-      <p>Go back and tick some recipes, then choose “Make shopping list”.</p>
-      <p><a class="btn btn-primary" href="/">Back to recipes</a></p>
+      <h2>Your shopping list is empty</h2>
+      <p>Add items above, or open a recipe and click “Add to shopping list”.</p>
     </div>
   {% else %}
-    <p class="muted">From {{ recipes | length }} recipe{{ 's' if recipes | length != 1 }}:
-      {{ recipes | map(attribute='title') | join(', ') }}</p>
-
-    <div class="shopping" id="shopping-list" data-key="{{ recipe_ids | join('-') }}-{{ system }}">
+    <div class="shopping" id="shopping-list">
       {% for section in aisles %}
         <section class="aisle">
           <h2 class="aisle-heading">{{ section.aisle | aisle_label }}</h2>
           <ul class="check-list">
             {% for item in section['items'] %}
-              <li class="check-item {% if not item.parsed %}unparsed{% endif %}">
-                <label>
-                  <input type="checkbox" class="tick">
-                  <span class="qty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
-                  <span class="iname">{{ item.name }}</span>
-                </label>
+              <li class="check-item {% if item.checked %}checked{% endif %}" data-item-id="{{ item.id }}">
+                <div class="check-view">
+                  <label>
+                    <input type="checkbox" class="tick" {% if item.checked %}checked{% endif %}>
+                    <span class="item-text">
+                      <span class="iname">{{ item.name }}</span>
+                      {% if item.note %}<span class="note">({{ item.note }})</span>{% endif %}
+                      {% if item.source %}<span class="source">from {{ item.source }}</span>{% endif %}
+                    </span>
+                    <span class="qty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
+                  </label>
+                  <div class="row-controls">
+                    <button type="button" class="btn btn-xs edit-toggle">✎</button>
+                    <form method="post" action="/shopping-list/items/{{ item.id }}/delete">
+                      <button type="submit" class="btn btn-xs btn-danger">✕</button>
+                    </form>
+                  </div>
+                </div>
+                <form method="post" action="/shopping-list/items/{{ item.id }}/update" class="check-edit">
+                  <input type="text" name="quantity" placeholder="qty" class="qty-in"
+                         value="{{ item.quantity if item.quantity is not none else '' }}" inputmode="decimal">
+                  <select name="unit">
+                    <option value="" {% if not item.unit %}selected{% endif %}>(count)</option>
+                    {% for u in ['tsp','tbsp','cup','fl_oz','ml','l','g','kg','oz','lb'] %}
+                      <option value="{{ u }}" {% if item.unit == u %}selected{% endif %}>{{ u }}</option>
+                    {% endfor %}
+                  </select>
+                  <input type="text" name="name" value="{{ item.name }}" class="name-in" required>
+                  <input type="text" name="note" value="{{ item.note or '' }}" placeholder="note" class="note-in">
+                  <button type="submit" class="btn btn-xs btn-primary">Save</button>
+                  <button type="button" class="btn btn-xs edit-cancel">Cancel</button>
+                </form>
               </li>
             {% endfor %}
           </ul>

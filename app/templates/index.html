@@ -26,11 +26,11 @@
       <p><a class="btn btn-primary" href="/recipes/add">Add a recipe</a></p>
     </div>
   {% else %}
-    <form method="get" action="/shopping-list" id="shopping-form">
+    <form method="post" action="/shopping-list/add-recipes" id="shopping-form">
       <div class="toolbar">
         <span class="muted"><span id="selected-count">0</span> selected</span>
         <button type="submit" class="btn btn-primary" id="make-list-btn" disabled>
-          Make shopping list
+          Add to shopping list
         </button>
       </div>
 

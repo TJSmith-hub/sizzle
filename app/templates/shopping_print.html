@@ -10,27 +10,30 @@
   <div class="print-header">
     <h1>Shopping list</h1>
     <p class="print-sub">
-      {{ recipes | map(attribute='title') | join(' · ') }}
-      &nbsp;—&nbsp; {{ system | capitalize }} units
+      {% if sources %}{{ sources | join(' · ') }}&nbsp;—&nbsp;{% endif %}{{ system | capitalize }} units
     </p>
   </div>
 
-  {% if not aisles %}
+  {% if not any_unchecked %}
     <p>No items.</p>
   {% else %}
     <div class="print-columns">
       {% for section in aisles %}
-        <section class="print-aisle">
-          <h2>{{ section.aisle | aisle_label }}</h2>
-          <ul>
-            {% for item in section['items'] %}
-              <li>
-                <span class="box"></span>
-                <span class="line">{{ item.display_quantity() }} {{ item.display_unit() }} {{ item.name }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        </section>
+        {% set unchecked = section['items'] | rejectattr('checked') | list %}
+        {% if unchecked %}
+          <section class="print-aisle">
+            <h2>{{ section.aisle | aisle_label }}</h2>
+            <ul>
+              {% for item in unchecked %}
+                <li>
+                  <span class="box"></span>
+                  <span class="line">{{ item.name }}{% if item.note %}, {{ item.note }}{% endif %}</span>
+                  <span class="pqty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
       {% endfor %}
     </div>
   {% endif %}

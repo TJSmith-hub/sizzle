@@ -22,6 +22,9 @@
           {% if recipe.source_url %}
             <a class="btn btn-ghost" href="{{ recipe.source_url }}" target="_blank" rel="noopener">View source ↗</a>
           {% endif %}
+          <form method="post" action="/recipes/{{ recipe.id }}/add-to-shopping-list">
+            <button type="submit" class="btn btn-primary">🛒 Add to shopping list</button>
+          </form>
           <a class="btn" href="/recipes/{{ recipe.id }}/edit">Edit</a>
           <form method="post" action="/recipes/{{ recipe.id }}/delete"
                 onsubmit="return confirm('Delete this recipe? This cannot be undone.');">

@@ -159,6 +159,15 @@ def delete(recipe_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url="/", status_code=303)
 
 
+@router.post("/recipes/{recipe_id}/add-to-shopping-list")
+def add_to_shopping_list(recipe_id: int, db: Session = Depends(get_db)):
+    recipe = db.get(Recipe, recipe_id)
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    added = crud.add_recipe_to_shopping_list(db, recipe)
+    return RedirectResponse(url=f"/shopping-list?added={added}", status_code=303)
+
+
 def _parse_payload(payload: str) -> RecipeIn:
     try:
         raw = json.loads(payload)

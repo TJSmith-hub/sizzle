@@ -29,7 +29,9 @@
   letter-spacing: .04em; border-bottom: 1px solid #000; padding-bottom: 2px;
 }
 .print-aisle ul { list-style: none; margin: 0; padding: 0; }
-.print-aisle li { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; font-size: .95rem; }
+.print-aisle li { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; font-size: .95rem; }
+.print-aisle .line { flex: 1; min-width: 0; }
+.print-aisle .pqty { flex: none; font-weight: 600; text-align: right; white-space: nowrap; }
 
 /* Simple square checkbox rendered without form controls */
 .box {
