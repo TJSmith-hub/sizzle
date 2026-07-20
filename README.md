@@ -34,7 +34,7 @@ tools don't do well:
 docker compose up -d
 ```
 
-Then open <http://localhost:8000>.
+Then open <http://localhost:6769>.
 
 - **Where the data lives:** the SQLite database is stored at `./data/recipes.db`
   on the host (mounted into the container at `/data/recipes.db`). It persists
@@ -130,3 +130,7 @@ Tables are created automatically on first startup.
 - Single-user; there is **no authentication**. Run it on your private network.
 - No nutrition data, no mobile app, and **no volume↔weight conversion** (that's
   ingredient-density dependent and unreliable with fixed factors).
+
+## License
+
+[MIT](LICENSE) — do what you like with it.

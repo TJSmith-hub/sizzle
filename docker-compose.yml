@@ -3,7 +3,8 @@ services:
     build: .
     container_name: recipe-manager
     ports:
-      - "8000:8000"
+      # host:container — the app listens on 8000 inside the container.
+      - "6769:8000"
     volumes:
       # Persist the SQLite database on the host so data survives restarts/upgrades.
       - ./data:/data

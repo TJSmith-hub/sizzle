@@ -3,6 +3,7 @@ name = "sizzle"
 version = "0.1.0"
 description = "Self-hosted, single-user recipe manager: import by URL, structured ingredients, scaling, and aisle-grouped shopping lists."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     # Web framework + server
