@@ -8,3 +8,5 @@ env/
 data/*.db
 *.sqlite3
 .DS_Store
+.localdeps/
+.localrun/
