@@ -10,45 +10,89 @@
 /* Standalone print page (/shopping-list/print) */
 .print-page {
   font-family: Georgia, "Times New Roman", serif;
-  color: #000;
-  background: #fff;
+  color: #111;
+  background: #efece7;
   margin: 0;
-  padding: 24px 28px;
-  line-height: 1.4;
+  padding: 28px 16px;
+  line-height: 1.45;
 }
 
-.print-header { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
-.print-header h1 { margin: 0; font-size: 1.6rem; }
-.print-sub { margin: 4px 0 0; font-size: .9rem; color: #333; }
+/* On screen the list sits on a centered "sheet of paper"; in print it fills
+   the page (the sheet chrome is stripped in @media print below). */
+.print-sheet {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 40px 44px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12), 0 20px 50px rgba(0,0,0,.10);
+}
 
-.print-columns { column-count: 2; column-gap: 34px; }
+.print-header { border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 22px; }
+.print-header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.01em; }
+.print-sources { margin: 5px 0 0; font-size: .85rem; font-style: italic; color: #333; }
+.print-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #555;
+}
+.print-meta span { position: relative; }
+.print-meta span + span::before {
+  content: ""; position: absolute; left: -10px; top: 50%;
+  width: 3px; height: 3px; margin-top: -1px; border-radius: 50%; background: #999;
+}
 
-.print-aisle { break-inside: avoid; margin-bottom: 16px; }
+.print-empty { font-size: 1.05rem; font-style: italic; color: #555; }
+
+.print-columns { column-count: 2; column-gap: 40px; }
+
+.print-aisle { break-inside: avoid; margin-bottom: 20px; }
 .print-aisle h2 {
-  font-size: 1.05rem; margin: 0 0 6px; text-transform: uppercase;
-  letter-spacing: .04em; border-bottom: 1px solid #000; padding-bottom: 2px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: .72rem; font-weight: 700; margin: 0 0 8px;
+  text-transform: uppercase; letter-spacing: .1em; color: #111;
+  border-bottom: 1px solid #111; padding-bottom: 4px;
 }
-.print-aisle ul { list-style: none; margin: 0; padding: 0; }
-.print-aisle li { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; font-size: .95rem; }
-.print-aisle .line { flex: 1; min-width: 0; }
-.print-aisle .pqty { flex: none; font-weight: 600; text-align: right; white-space: nowrap; }
 
-/* Simple square checkbox rendered without form controls */
-.box {
-  display: inline-block; width: 12px; height: 12px; flex: none;
-  border: 1.5px solid #000; border-radius: 2px; margin-top: 2px;
+.print-aisle ul { list-style: none; margin: 0; padding: 0; }
+.print-aisle li {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 1.2rem;
+  break-inside: avoid;
+}
+.print-aisle .line { flex: 0 1 auto; }
+.print-aisle .line .note { color: #555; font-style: italic; }
+.print-aisle .dots {
+  flex: 1 1 auto; min-width: 12px; height: 0;
+  border-bottom: 1.5px dotted #c4bfb6; transform: translateY(-2px);
+}
+.print-aisle .pqty {
+  flex: none; font-weight: 700; text-align: right; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.print-foot {
+  margin-top: 28px; padding-top: 12px; border-top: 1px solid #ddd;
+  text-align: center; font-size: .7rem; color: #999; letter-spacing: .04em;
 }
 
 .print-btn {
-  margin-top: 24px; padding: 8px 18px; font-size: 1rem; cursor: pointer;
-  border: 1px solid #000; background: #fff; border-radius: 6px;
+  display: block; margin: 22px auto 0; padding: 10px 22px; font-size: 1rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  border: 1px solid #111; background: #111; color: #fff; border-radius: 6px;
 }
+.print-btn:hover { background: #333; }
 
 @media print {
+  .print-page { background: #fff; padding: 0; }
+  .print-sheet {
+    max-width: none; margin: 0; padding: 0;
+    border-radius: 0; box-shadow: none;
+  }
   .print-btn { display: none; }
   @page { margin: 1.4cm; }
 }
 
 @media (max-width: 620px) {
+  .print-sheet { padding: 28px 22px; }
   .print-columns { column-count: 1; }
 }

@@ -7,37 +7,57 @@
   <link rel="stylesheet" href="/static/css/print.css">
 </head>
 <body class="print-page">
-  <div class="print-header">
-    <h1>Shopping list</h1>
-    <p class="print-sub">
-      {% if sources %}{{ sources | join(' · ') }}&nbsp;—&nbsp;{% endif %}{{ system | capitalize }} units
-    </p>
+  {% set ns = namespace(total=0) %}
+  {% for section in aisles %}
+    {% set ns.total = ns.total + (section['items'] | rejectattr('checked') | list | length) %}
+  {% endfor %}
+
+  <div class="print-sheet">
+    <header class="print-header">
+      <h1>Shopping list</h1>
+      {% if sources %}<p class="print-sources">{{ sources | join(' · ') }}</p>{% endif %}
+      <p class="print-meta">
+        <span>{{ system | capitalize }} units</span>
+        <span id="print-date"></span>
+      </p>
+    </header>
+
+    {% if not ns.total %}
+      <p class="print-empty">Nothing left to buy — every item is checked off.</p>
+    {% else %}
+      <div class="print-columns">
+        {% for section in aisles %}
+          {% set unchecked = section['items'] | rejectattr('checked') | list %}
+          {% if unchecked %}
+            <section class="print-aisle">
+              <h2>{{ section.aisle | aisle_label }}</h2>
+              <ul>
+                {% for item in unchecked %}
+                  <li>
+                    <span class="line">{{ item.name }}{% if item.note %}, <span class="note">{{ item.note }}</span>{% endif %}</span>
+                    <span class="dots"></span>
+                    <span class="pqty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <footer class="print-foot">🔥 Sizzle</footer>
   </div>
 
-  {% if not any_unchecked %}
-    <p>No items.</p>
-  {% else %}
-    <div class="print-columns">
-      {% for section in aisles %}
-        {% set unchecked = section['items'] | rejectattr('checked') | list %}
-        {% if unchecked %}
-          <section class="print-aisle">
-            <h2>{{ section.aisle | aisle_label }}</h2>
-            <ul>
-              {% for item in unchecked %}
-                <li>
-                  <span class="box"></span>
-                  <span class="line">{{ item.name }}{% if item.note %}, {{ item.note }}{% endif %}</span>
-                  <span class="pqty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          </section>
-        {% endif %}
-      {% endfor %}
-    </div>
-  {% endif %}
+  <button class="print-btn no-print" onclick="window.print()">Print this list</button>
 
-  <button class="print-btn no-print" onclick="window.print()">Print</button>
+  <script>
+    (function () {
+      var el = document.getElementById('print-date');
+      if (el) el.textContent = new Date().toLocaleDateString(undefined, {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+    })();
+  </script>
 </body>
 </html>
