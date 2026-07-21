@@ -8,6 +8,37 @@ from __future__ import annotations
 
 from app.models import Ingredient, Recipe
 
+INSTRUCTION_TYPES = {"step", "heading"}
+
+
+def normalize_instructions(raw) -> list[dict]:
+    """Coerce stored/scraped instructions into a list of typed items.
+
+    Instructions are a mix of numbered ``step`` items and ``heading`` items
+    (section subtitles like "For the sauce"), stored as
+    ``{"type": "step"|"heading", "text": str}``. This also accepts the legacy
+    shape -- a plain list of step strings -- so recipes saved before headings
+    existed keep working: bare strings become steps, unknown types fall back to
+    steps, and empty text is dropped.
+    """
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for item in raw:
+        if isinstance(item, str):
+            text, itype = item.strip(), "step"
+        elif isinstance(item, dict):
+            text = str(item.get("text", "")).strip()
+            itype = item.get("type", "step")
+            if itype not in INSTRUCTION_TYPES:
+                itype = "step"
+        else:
+            continue
+        if not text:
+            continue
+        out.append({"type": itype, "text": text})
+    return out
+
 
 def ingredient_to_dict(ing: Ingredient) -> dict:
     return {
@@ -31,7 +62,7 @@ def recipe_to_review_dict(recipe: Recipe) -> dict:
         "prep_time": recipe.prep_time,
         "cook_time": recipe.cook_time,
         "total_time": recipe.total_time,
-        "instructions": list(recipe.instructions or []),
+        "instructions": normalize_instructions(recipe.instructions),
         "tags": [t.name for t in recipe.tags],
         "groups": [
             {
@@ -55,7 +86,7 @@ def recipe_to_detail_dict(recipe: Recipe) -> dict:
             }
             for g in recipe.groups
         ],
-        "instructions": list(recipe.instructions or []),
+        "instructions": normalize_instructions(recipe.instructions),
     }
 
 

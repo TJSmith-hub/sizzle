@@ -167,12 +167,32 @@
       ingWrap.appendChild(box);
     });
 
-    // instructions (with temperature conversion)
+    // instructions (grouped by heading, with temperature conversion). Each
+    // heading starts a fresh <ol>, but step numbers run continuously across the
+    // whole recipe (the <ol> `start` carries the count on) so a recipe of
+    // single-step sections doesn't render "1." over and over.
     stepsWrap.innerHTML = '';
-    (data.instructions || []).forEach((step) => {
+    let currentOl = null;
+    let stepCount = 0;
+    (data.instructions || []).forEach((raw) => {
+      const item = typeof raw === 'string' ? { type: 'step', text: raw } : raw;
+      if (item.type === 'heading') {
+        const h = document.createElement('h3');
+        h.className = 'instruction-group-heading';
+        h.textContent = convertTemps(item.text, system);
+        stepsWrap.appendChild(h);
+        currentOl = null;
+        return;
+      }
+      if (!currentOl) {
+        currentOl = document.createElement('ol');
+        currentOl.start = stepCount + 1;
+        stepsWrap.appendChild(currentOl);
+      }
       const li = document.createElement('li');
-      li.textContent = convertTemps(step, system);
-      stepsWrap.appendChild(li);
+      li.textContent = convertTemps(item.text, system);
+      currentOl.appendChild(li);
+      stepCount += 1;
     });
 
     // toggle button state

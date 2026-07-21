@@ -62,8 +62,14 @@
     <section class="card">
       <div class="section-head">
         <h2>Instructions</h2>
-        <button type="button" class="btn" id="add-step">+ Add step</button>
+        <div class="group-controls">
+          <button type="button" class="btn" id="add-heading">+ Add heading</button>
+          <button type="button" class="btn" id="add-step">+ Add step</button>
+        </div>
       </div>
+      <p class="hint">Use a heading to label a part of the method (e.g. “For the
+        sauce”). The <strong>↥ heading</strong> / <strong>↧ step</strong> button
+        flips a line between the two; headings aren’t numbered.</p>
       <div id="steps"></div>
     </section>
 

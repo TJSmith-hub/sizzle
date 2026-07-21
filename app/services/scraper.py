@@ -80,6 +80,113 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip().lower()
 
 
+# A step line that instead reads like a section subtitle ("For the sauce").
+_HEADING_RE = re.compile(r"^for the .{1,40}$", re.IGNORECASE)
+# Names that are step numbers rather than section titles ("Step 1", "3.").
+_STEP_LABEL_RE = re.compile(r"^(step\s*)?\d+\.?$", re.IGNORECASE)
+
+
+def _collapse(text) -> str:
+    """Collapse runs of whitespace and strip (schema text is often double-spaced)."""
+    return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def _is_section_name(name: str, text: str) -> bool:
+    """Whether a step's ``name`` is a real section label rather than its text.
+
+    Named-step recipes (common in WordPress Recipe Maker) give each step a short
+    title like "Marinade" or "Skewer" alongside the full instruction text. Those
+    make good headings. We reject names that merely repeat/truncate the text, are
+    too long to be a label, are a full sentence, or are just a step number.
+    """
+    if not name or name == text:
+        return False
+    if len(name) > 40 or len(name.split()) > 6:
+        return False
+    return not (name.endswith((".", "!", "?")) or _STEP_LABEL_RE.match(name))
+
+
+def _schema_instructions(scraper) -> list[dict] | None:
+    """Build typed instructions from the page's schema.org ``recipeInstructions``.
+
+    This is the reliable source of section structure: ``HowToSection`` entries
+    carry a section ``name`` wrapping child steps, and many sites tag each
+    ``HowToStep`` with a short ``name`` (e.g. "Marinade", "Bake"). Both become
+    headings here -- structure the flat ``instructions_list`` throws away.
+
+    Returns typed items only when at least one heading was found; otherwise None,
+    so callers fall back to the plain-text path (no headings invented).
+    """
+    try:
+        data = scraper.schema.data
+    except Exception:  # noqa: BLE001 - no/!broken schema; caller falls back
+        return None
+    raw = data.get("recipeInstructions") if isinstance(data, dict) else None
+    if not isinstance(raw, list):
+        return None
+
+    out: list[dict] = []
+    saw_heading = False
+
+    def add_step(text) -> None:
+        t = _collapse(text)
+        if t:
+            out.append({"type": "step", "text": t})
+
+    for entry in raw:
+        if isinstance(entry, str):
+            add_step(entry)
+            continue
+        if not isinstance(entry, dict):
+            continue
+        children = entry.get("itemListElement")
+        if entry.get("@type") == "HowToSection" or children:
+            name = _collapse(entry.get("name"))
+            if name and len(name) <= 60 and not _STEP_LABEL_RE.match(name):
+                out.append({"type": "heading", "text": name})
+                saw_heading = True
+            for child in children or []:
+                if isinstance(child, dict):
+                    add_step(child.get("text") or child.get("name"))
+                elif isinstance(child, str):
+                    add_step(child)
+        else:  # HowToStep
+            name = _collapse(entry.get("name"))
+            text = _collapse(entry.get("text"))
+            if _is_section_name(name, text):
+                out.append({"type": "heading", "text": name})
+                saw_heading = True
+            add_step(text or name)
+
+    return out if (out and saw_heading) else None
+
+
+def _classify_instructions(lines: list[str]) -> list[dict]:
+    """Turn scraped instruction lines into typed step/heading items.
+
+    Most lines are steps. A few sites emit section subtitles inline as their own
+    line; we flag the obvious ones as headings so they don't get a step number.
+    The detection is deliberately conservative (short lines that read like a
+    subtitle, not a sentence) -- anything it misses is a one-click fix in the
+    review editor.
+    """
+    out: list[dict] = []
+    for line in lines:
+        s = (line or "").strip()
+        if not s:
+            continue
+        ends_sentence = s.endswith((".", "!", "?"))
+        is_heading = (
+            (s.endswith(":") and len(s.split()) <= 6)
+            or (bool(_HEADING_RE.match(s)) and not ends_sentence)
+        )
+        if is_heading:
+            out.append({"type": "heading", "text": s.rstrip(":").strip()})
+        else:
+            out.append({"type": "step", "text": s})
+    return out
+
+
 def _has_sections(groups: list | None) -> bool:
     """Return True if at least one group carries a real section title."""
     return bool(groups) and any(g["title"] for g in groups)
@@ -177,7 +284,7 @@ def scrape_recipe(url: str) -> dict:
         {
           "title", "source_url", "image_url", "servings",
           "prep_time", "cook_time", "total_time",
-          "instructions": [str, ...],
+          "instructions": [ {"type": "step"|"heading", "text": str}, ... ],
           "groups": [ {"title": str|None, "ingredients": [parsed_dict, ...]} ],
         }
 
@@ -208,10 +315,15 @@ def scrape_recipe(url: str) -> dict:
             "You can still add it manually."
         )
 
-    instructions = _safe(scraper.instructions_list, default=None)
+    # Prefer the schema's own section/step structure; fall back to the flat list
+    # (with a light heading heuristic) when the page has no usable schema.
+    instructions = _schema_instructions(scraper)
     if not instructions:
-        text = _safe(scraper.instructions, default="") or ""
-        instructions = [s.strip() for s in text.split("\n") if s.strip()]
+        lines = _safe(scraper.instructions_list, default=None)
+        if not lines:
+            text = _safe(scraper.instructions, default="") or ""
+            lines = [s.strip() for s in text.split("\n") if s.strip()]
+        instructions = _classify_instructions(lines)
 
     # Reconstruct ingredient sections (preferring the site's own grouping), then
     # parse each line into structured fields.

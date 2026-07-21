@@ -71,8 +71,12 @@ class Recipe(Base):
     cook_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Ordered list of instruction step strings.
-    instructions: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    # Ordered list of instruction items, each a dict of
+    # {"type": "step"|"heading", "text": str}. "heading" items are section
+    # subtitles ("For the sauce") that break the steps into named parts, mirroring
+    # ingredient groups. Legacy rows may hold bare strings; readers normalize via
+    # app.presenters.normalize_instructions.
+    instructions: Mapped[list[dict]] = mapped_column(JSON, default=list, nullable=False)
 
     # Optional per-recipe unit-system override ("metric"/"imperial"); when null the
     # global DEFAULT_UNIT_SYSTEM applies. The live UI toggle also persists to the

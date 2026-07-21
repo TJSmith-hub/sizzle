@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.presenters import normalize_instructions
+
 
 class IngredientIn(BaseModel):
     raw_text: str = Field(..., min_length=1)
@@ -52,7 +54,9 @@ class RecipeIn(BaseModel):
     prep_time: int | None = Field(default=None, ge=0)
     cook_time: int | None = Field(default=None, ge=0)
     total_time: int | None = Field(default=None, ge=0)
-    instructions: list[str] = Field(default_factory=list)
+    # Each entry is {"type": "step"|"heading", "text": str}; see
+    # app.presenters.normalize_instructions (also accepts legacy bare strings).
+    instructions: list[dict] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     groups: list[GroupIn] = Field(default_factory=list)
 
@@ -64,9 +68,7 @@ class RecipeIn(BaseModel):
     @field_validator("instructions", mode="before")
     @classmethod
     def _clean_instructions(cls, v):
-        if not isinstance(v, list):
-            return []
-        return [s.strip() for s in v if isinstance(s, str) and s.strip()]
+        return normalize_instructions(v)
 
     @field_validator("tags", mode="before")
     @classmethod

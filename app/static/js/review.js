@@ -24,7 +24,13 @@
     })),
   }));
   if (!groups.length) groups = [{ title: '', ingredients: [] }];
-  let steps = (data.instructions || []).slice();
+  // Steps are typed items: {type: 'step'|'heading', text}. Tolerate the legacy
+  // shape (bare strings) so old recipes still load into the editor.
+  let steps = (data.instructions || []).map((s) =>
+    typeof s === 'string'
+      ? { type: 'step', text: s }
+      : { type: s.type === 'heading' ? 'heading' : 'step', text: s.text || '' }
+  );
 
   const groupsEl = document.getElementById('groups');
   const stepsEl = document.getElementById('steps');
@@ -162,10 +168,29 @@
 
   function renderSteps() {
     stepsEl.innerHTML = '';
-    steps.forEach((text, si) => {
-      const ta = el('textarea', { rows: '2' });
-      ta.value = text;
-      ta.addEventListener('input', () => { steps[si] = ta.value; });
+    let n = 0; // running step number (continuous across sections; headings skip it)
+    steps.forEach((item, si) => {
+      const isHeading = item.type === 'heading';
+      if (!isHeading) n += 1;
+
+      let input;
+      if (isHeading) {
+        input = el('input', { type: 'text', class: 'heading-in', placeholder: 'Section heading (e.g. For the sauce)' });
+      } else {
+        input = el('textarea', { rows: '2' });
+      }
+      input.value = item.text;
+      input.addEventListener('input', () => { item.text = input.value; });
+
+      const toggle = el('button', {
+        type: 'button', class: 'btn btn-xs',
+        text: isHeading ? '↧ step' : '↥ heading',
+        title: isHeading ? 'Turn into a numbered step' : 'Turn into a section heading',
+      });
+      toggle.addEventListener('click', () => {
+        item.type = isHeading ? 'step' : 'heading';
+        renderSteps();
+      });
 
       const up = el('button', { type: 'button', class: 'btn btn-xs', text: '↑' });
       up.disabled = si === 0;
@@ -178,9 +203,10 @@
       const del = el('button', { type: 'button', class: 'btn btn-xs btn-danger', text: '✕' });
       del.addEventListener('click', () => { steps.splice(si, 1); renderSteps(); });
 
-      const num = el('span', { class: 'step-num', text: String(si + 1) + '.' });
-      const controls = el('div', { class: 'row-controls' }, [up, down, del]);
-      stepsEl.appendChild(el('div', { class: 'step-row' }, [num, ta, controls]));
+      const num = el('span', { class: 'step-num', text: isHeading ? '' : String(n) + '.' });
+      const controls = el('div', { class: 'row-controls' }, [toggle, up, down, del]);
+      const cls = 'step-row' + (isHeading ? ' step-heading-row' : '');
+      stepsEl.appendChild(el('div', { class: cls }, [num, input, controls]));
     });
   }
 
@@ -195,7 +221,11 @@
     renderGroups();
   });
   document.getElementById('add-step').addEventListener('click', () => {
-    steps.push('');
+    steps.push({ type: 'step', text: '' });
+    renderSteps();
+  });
+  document.getElementById('add-heading').addEventListener('click', () => {
+    steps.push({ type: 'heading', text: '' });
     renderSteps();
   });
 
@@ -221,7 +251,9 @@
       cook_time: intVal('f-cook'),
       total_time: intVal('f-total'),
       tags: document.getElementById('f-tags').value.split(',').map((s) => s.trim()).filter(Boolean),
-      instructions: steps.map((s) => s.trim()).filter(Boolean),
+      instructions: steps
+        .map((s) => ({ type: s.type === 'heading' ? 'heading' : 'step', text: (s.text || '').trim() }))
+        .filter((s) => s.text),
       groups: groups
         .filter((g) => g.title.trim() || g.ingredients.length)
         .map((g) => ({
