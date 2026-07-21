@@ -215,6 +215,44 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus-ring)
 .instruction-group-heading { margin: 20px 0 8px; font-size: 1rem; color: var(--accent); }
 .instruction-group-heading:first-child { margin-top: 0; }
 
+/* Tappable duration inside a step ("simmer for 20 minutes"). */
+.timer-chip {
+  display: inline; font: inherit; cursor: pointer; white-space: nowrap;
+  padding: 1px 8px; margin: 0 1px; border-radius: 999px; line-height: 1.4;
+  border: 1px solid var(--accent); background: var(--chip-bg); color: var(--accent);
+}
+.timer-chip:hover { background: var(--accent); color: var(--accent-ink); }
+.timer-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+/* --- Timer bar (fixed at the bottom of the detail page) --- */
+#timer-bar {
+  display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  flex-direction: column; gap: 1px;
+  background: var(--line); border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 24px rgba(0,0,0,.35);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.timer-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; background: var(--card);
+}
+.timer-main { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.timer-time {
+  font-variant-numeric: tabular-nums; font-weight: 700; font-size: 1.5rem;
+  color: var(--accent); min-width: 3.5ch;
+}
+.timer-label {
+  color: var(--muted); font-size: .85rem; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.timer-controls { display: flex; gap: 6px; flex: none; }
+.timer-ctrl { width: 40px; height: 40px; font-size: 1rem; }
+.timer-row.is-paused .timer-time { color: var(--muted); }
+.timer-row.is-done .timer-time { color: var(--danger); animation: timer-pulse 1s ease-in-out infinite; }
+@keyframes timer-pulse { 50% { opacity: .35; } }
+/* Keep the last of the page's content clear of the fixed bar. */
+body.timers-active .site-footer { padding-bottom: 96px; }
+
 /* --- Shopping list --- */
 .add-item-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px; }
 .add-item-form .qty-in { width: 70px; }

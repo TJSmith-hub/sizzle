@@ -77,6 +77,65 @@
     return whole ? whole + ' ' + fs : fs;
   }
 
+  // --- durations -> tappable timer chips ---
+  // One component of a duration ("20 minutes", "1 hr", "20-25 mins"). A range
+  // takes the upper bound (group 2). Deliberately conservative: no bare h/m/s
+  // single letters, so we don't turn stray numbers into timers.
+  const DURATION_RE = /(\d+(?:\.\d+)?)(?:\s*(?:-|–|—|to)\s*(\d+(?:\.\d+)?))?\s*(hours?|hrs?|hr|minutes?|mins?|min|seconds?|secs?|sec)\b/gi;
+
+  function unitSeconds(unit) {
+    const u = unit.toLowerCase();
+    if (u[0] === 'h') return 3600;
+    if (u[0] === 'm') return 60;
+    return 1;
+  }
+
+  // Find duration spans in `text`, merging adjacent components ("1 hour 30
+  // minutes") into a single chip. Returns [{start, end, seconds}].
+  function findDurations(text) {
+    const comps = [];
+    let m;
+    DURATION_RE.lastIndex = 0;
+    while ((m = DURATION_RE.exec(text)) !== null) {
+      const value = m[2] != null ? parseFloat(m[2]) : parseFloat(m[1]);
+      comps.push({ start: m.index, end: m.index + m[0].length, seconds: Math.round(value * unitSeconds(m[3])) });
+    }
+    const merged = [];
+    comps.forEach((c) => {
+      const last = merged[merged.length - 1];
+      // Merge only if the gap is whitespace or a joining "and".
+      if (last && /^\s*(?:and\s*)?$/i.test(text.slice(last.end, c.start))) {
+        last.end = c.end;
+        last.seconds += c.seconds;
+      } else {
+        merged.push({ ...c });
+      }
+    });
+    return merged;
+  }
+
+  // Append `text` to `li`, rendering any durations as timer buttons.
+  function appendStepText(li, text, contextLabel) {
+    const spans = findDurations(text);
+    if (!spans.length) { li.appendChild(document.createTextNode(text)); return; }
+    let idx = 0;
+    spans.forEach((s) => {
+      if (s.start > idx) li.appendChild(document.createTextNode(text.slice(idx, s.start)));
+      const label = text.slice(s.start, s.end);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'timer-chip';
+      btn.textContent = '⏱ ' + label;
+      btn.title = 'Start a ' + label + ' timer';
+      btn.addEventListener('click', () => {
+        if (window.SizzleTimers) window.SizzleTimers.start(s.seconds, contextLabel || label);
+      });
+      li.appendChild(btn);
+      idx = s.end;
+    });
+    if (idx < text.length) li.appendChild(document.createTextNode(text.slice(idx)));
+  }
+
   const TEMP_RE = /(-?\d{2,3})\s*(?:°|degrees?\s*)?\s*([CF])\b/gi;
   function convertTemps(text, system) {
     const target = system === 'metric' ? 'C' : 'F';
@@ -190,7 +249,7 @@
         stepsWrap.appendChild(currentOl);
       }
       const li = document.createElement('li');
-      li.textContent = convertTemps(item.text, system);
+      appendStepText(li, convertTemps(item.text, system), 'Step ' + (stepCount + 1));
       currentOl.appendChild(li);
       stepCount += 1;
     });
