@@ -28,16 +28,9 @@
     <input type="text" name="quantity" placeholder="qty" class="qty-in" inputmode="decimal">
     <select name="unit">
       <option value="">(count)</option>
-      <option value="tsp">tsp</option>
-      <option value="tbsp">tbsp</option>
-      <option value="cup">cup</option>
-      <option value="fl_oz">fl oz</option>
-      <option value="ml">ml</option>
-      <option value="l">l</option>
-      <option value="g">g</option>
-      <option value="kg">kg</option>
-      <option value="oz">oz</option>
-      <option value="lb">lb</option>
+      {% for code, label in unit_options.items() %}
+        <option value="{{ code }}">{{ label }}</option>
+      {% endfor %}
     </select>
     <input type="text" name="name" placeholder="Add an item…" required class="name-in">
     <input type="text" name="note" placeholder="note (optional)" class="note-in">
@@ -79,8 +72,8 @@
                          value="{{ item.quantity if item.quantity is not none else '' }}" inputmode="decimal">
                   <select name="unit">
                     <option value="" {% if not item.unit %}selected{% endif %}>(count)</option>
-                    {% for u in ['tsp','tbsp','cup','fl_oz','ml','l','g','kg','oz','lb'] %}
-                      <option value="{{ u }}" {% if item.unit == u %}selected{% endif %}>{{ u }}</option>
+                    {% for code, label in unit_options.items() %}
+                      <option value="{{ code }}" {% if item.unit == code %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                   </select>
                   <input type="text" name="name" value="{{ item.name }}" class="name-in" required>

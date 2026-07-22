@@ -95,7 +95,11 @@ class Recipe(Base):
         back_populates="recipe",
         cascade="all, delete-orphan",
         order_by="IngredientGroup.position",
-        lazy="selectin",
+        # Lazy-loaded: the recipe listing never touches groups, so it shouldn't
+        # pay to fetch every recipe's ingredients. Detail/edit access groups
+        # within the request, which triggers the load (and the ingredients
+        # selectin below) only for the single recipe being shown.
+        lazy="select",
     )
 
 
@@ -168,5 +172,4 @@ class ShoppingListItem(Base):
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     source: Mapped[str | None] = mapped_column(String(300), nullable=True)
     checked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)

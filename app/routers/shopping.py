@@ -62,11 +62,10 @@ def shopping_print(request: Request, db: Session = Depends(get_db), system: str 
     items = _all_items(db)
     aisles = build_shopping_view(items, system) if items else []
     sources = sorted({i.source for i in items if i.source})
-    any_unchecked = any(not i.checked for i in items)
     return templates.TemplateResponse(
         request,
         "shopping_print.html",
-        {"aisles": aisles, "system": system, "sources": sources, "any_unchecked": any_unchecked},
+        {"aisles": aisles, "system": system, "sources": sources},
     )
 
 

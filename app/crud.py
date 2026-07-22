@@ -21,6 +21,22 @@ def _get_or_create_tags(db: Session, names: list[str]) -> list[Tag]:
     return tags
 
 
+def _apply_scalar_fields(recipe: Recipe, data: RecipeIn) -> None:
+    """Copy the plain (non-relationship) recipe fields from the payload.
+
+    Shared by create and update so the two can't drift out of sync when a field
+    is added or renamed.
+    """
+    recipe.title = data.title
+    recipe.source_url = data.source_url
+    recipe.image_url = data.image_url
+    recipe.servings = data.servings
+    recipe.prep_time = data.prep_time
+    recipe.cook_time = data.cook_time
+    recipe.total_time = data.total_time
+    recipe.instructions = data.instructions
+
+
 def _apply_groups(recipe: Recipe, data: RecipeIn) -> None:
     """Replace a recipe's groups/ingredients with those from the payload."""
     recipe.groups.clear()  # delete-orphan cascade removes old rows on flush
@@ -46,16 +62,8 @@ def _apply_groups(recipe: Recipe, data: RecipeIn) -> None:
 
 
 def create_recipe(db: Session, data: RecipeIn) -> Recipe:
-    recipe = Recipe(
-        title=data.title,
-        source_url=data.source_url,
-        image_url=data.image_url,
-        servings=data.servings,
-        prep_time=data.prep_time,
-        cook_time=data.cook_time,
-        total_time=data.total_time,
-        instructions=data.instructions,
-    )
+    recipe = Recipe()
+    _apply_scalar_fields(recipe, data)
     recipe.tags = _get_or_create_tags(db, data.tags)
     _apply_groups(recipe, data)
     db.add(recipe)
@@ -65,14 +73,7 @@ def create_recipe(db: Session, data: RecipeIn) -> Recipe:
 
 
 def update_recipe(db: Session, recipe: Recipe, data: RecipeIn) -> Recipe:
-    recipe.title = data.title
-    recipe.source_url = data.source_url
-    recipe.image_url = data.image_url
-    recipe.servings = data.servings
-    recipe.prep_time = data.prep_time
-    recipe.cook_time = data.cook_time
-    recipe.total_time = data.total_time
-    recipe.instructions = data.instructions
+    _apply_scalar_fields(recipe, data)
     recipe.tags = _get_or_create_tags(db, data.tags)
     _apply_groups(recipe, data)
     db.commit()

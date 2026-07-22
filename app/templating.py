@@ -34,3 +34,7 @@ templates.env.filters["minutes"] = _minutes
 templates.env.filters["unit_label"] = units.unit_label
 templates.env.filters["format_quantity"] = units.format_quantity
 templates.env.filters["aisle_label"] = _aisle_label
+
+# Canonical unit code -> friendly label, shared so unit <select>s are rendered
+# from one source of truth rather than hand-maintained option lists.
+templates.env.globals["unit_options"] = units.UNIT_LABELS
