@@ -9,7 +9,10 @@ depends on the library's own networking.
 """
 from __future__ import annotations
 
+import ipaddress
 import re
+import socket
+from urllib.parse import urlparse
 
 import httpx
 from recipe_scrapers import scrape_html
@@ -18,9 +21,59 @@ from app.config import FETCH_TIMEOUT, FETCH_USER_AGENT
 from app.services.grouping import group_ingredients
 from app.services.parser import parse_ingredient
 
+# The fetcher pulls a user-supplied URL, so it must not be steerable into the
+# host's own loopback interface, the LAN, or a cloud metadata endpoint (SSRF).
+# We resolve the host up front and reject non-public addresses, and — since a
+# public URL can redirect into those ranges — re-validate every redirect hop.
+MAX_REDIRECTS = 5
+# An HTML recipe page is comfortably under a few MB; cap the (decompressed) body
+# so a huge or gzip-bomb response can't exhaust memory.
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+_PRIVATE_URL_ERROR = (
+    "That URL resolves to a private or local network address, which isn't allowed."
+)
+
 
 class ScrapeError(Exception):
     """Raised when a URL cannot be fetched or no usable recipe data is found."""
+
+
+def _is_blocked_ip(ip: str) -> bool:
+    """Whether an IP address must not be fetched (non-public or unparseable)."""
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return True  # can't classify it -> refuse
+    return (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_multicast
+        or addr.is_reserved
+        or addr.is_unspecified
+    )
+
+
+def _validate_public_url(url: str) -> None:
+    """Reject non-http(s) URLs and any host that resolves to a non-public IP.
+
+    Resolving here (rather than trusting the literal host) also covers hostnames
+    that point at internal addresses. Raises ScrapeError on any violation.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ScrapeError("Only http:// and https:// URLs can be fetched.")
+    host = parsed.hostname
+    if not host:
+        raise ScrapeError("That URL has no host to fetch.")
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except socket.gaierror as exc:
+        raise ScrapeError(f"Couldn't resolve the host '{host}'.") from exc
+    for info in infos:
+        if _is_blocked_ip(info[4][0]):
+            raise ScrapeError(_PRIVATE_URL_ERROR)
 
 
 def _fetch_html(url: str) -> str:
@@ -30,12 +83,33 @@ def _fetch_html(url: str) -> str:
         "Accept-Language": "en-GB,en;q=0.9",
     }
     try:
+        # Follow redirects manually so each hop's host is re-validated before it
+        # is fetched (an allowlist on the first URL alone is bypassable).
         with httpx.Client(
-            headers=headers, timeout=FETCH_TIMEOUT, follow_redirects=True
+            headers=headers, timeout=FETCH_TIMEOUT, follow_redirects=False
         ) as client:
-            resp = client.get(url)
-            resp.raise_for_status()
-            return resp.text
+            for _ in range(MAX_REDIRECTS + 1):
+                _validate_public_url(url)
+                with client.stream("GET", url) as resp:
+                    if resp.is_redirect:
+                        location = resp.headers.get("location")
+                        if not location:
+                            raise ScrapeError("The page redirected without a destination.")
+                        url = str(resp.url.join(location))
+                        continue
+                    resp.raise_for_status()
+                    chunks: list[bytes] = []
+                    total = 0
+                    for chunk in resp.iter_bytes():
+                        total += len(chunk)
+                        if total > MAX_RESPONSE_BYTES:
+                            raise ScrapeError(
+                                "That page is too large to fetch "
+                                f"(over {MAX_RESPONSE_BYTES // (1024 * 1024)} MB)."
+                            )
+                        chunks.append(chunk)
+                    return b"".join(chunks).decode(resp.encoding or "utf-8", errors="replace")
+            raise ScrapeError("Too many redirects while fetching the page.")
     except httpx.HTTPStatusError as exc:
         raise ScrapeError(
             f"The page returned HTTP {exc.response.status_code}. "
