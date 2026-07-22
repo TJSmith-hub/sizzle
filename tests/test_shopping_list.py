@@ -44,6 +44,26 @@ def test_build_shopping_view_keeps_count_items_unconverted():
     assert item.display_quantity() == "6"
 
 
+def test_build_shopping_view_range_endpoints_share_a_unit():
+    # 800 ml – 1200 ml straddles the ml->l promotion: both ends must be
+    # expressed in the SAME unit, not "800–1 ml" (max misrounded in the low
+    # end's unit).
+    items = [_item(id=1, name="milk", quantity=800, quantity_max=1200, unit="ml")]
+    aisles = build_shopping_view(items, "metric")
+    item = aisles[0]["items"][0]
+    assert item.unit == "l"
+    assert item.quantity == 0.8
+    assert item.quantity_max == 1.2
+
+
+def test_build_shopping_view_count_range_unconverted():
+    items = [_item(id=1, name="garlic", quantity=1, quantity_max=2, unit=None)]
+    aisles = build_shopping_view(items, "metric")
+    item = aisles[0]["items"][0]
+    assert item.unit is None
+    assert item.display_quantity() == "1–2"
+
+
 def test_build_shopping_view_no_quantity_renders_blank():
     items = [_item(id=1, name="salt", quantity=None)]
     aisles = build_shopping_view(items, "metric")

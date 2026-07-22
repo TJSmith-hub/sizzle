@@ -74,11 +74,16 @@ class DisplayItem:
 def _to_display(item: ShoppingListItem, system: str) -> DisplayItem:
     qty, qty_max, unit = item.quantity, item.quantity_max, item.unit
     if qty is not None:
-        qty, unit = units.to_system(qty, unit, system)
-        qty = units.round_cooking(qty, unit)
         if qty_max is not None:
-            qty_max, _ = units.to_system(item.quantity_max, item.unit, system)
+            # Pick the display unit from the max end (its larger magnitude
+            # decides any promotion, e.g. ml->l), then express the low end in
+            # that same unit so the range reads consistently.
+            qty_max, unit = units.to_system(qty_max, item.unit, system)
+            qty = units.convert(item.quantity, item.unit, unit)
             qty_max = units.round_cooking(qty_max, unit)
+        else:
+            qty, unit = units.to_system(qty, unit, system)
+        qty = units.round_cooking(qty, unit)
     return DisplayItem(
         id=item.id,
         name=item.name,

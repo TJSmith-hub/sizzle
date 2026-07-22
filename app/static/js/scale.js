@@ -25,6 +25,15 @@
 
   function mtype(u) { return u == null ? 'count' : (UNIT_TYPE[u] || 'count'); }
 
+  // Convert within a measurement type (mirrors units.convert). Returns null for
+  // cross-type conversions; count<->count passes the quantity through.
+  function convert(qty, from, to) {
+    if (from === to) return qty;
+    if (mtype(from) !== mtype(to)) return null;
+    if (from == null || to == null) return qty;
+    return (qty * TO_BASE[from]) / TO_BASE[to];
+  }
+
   function toSystem(qty, unit, system) {
     const t = mtype(unit);
     if (t === 'count' || unit == null) return [qty, unit];
@@ -172,15 +181,19 @@
     if (!ing.parsed || ing.quantity == null) {
       return { amount: '', unit: '', name: ing.raw_text, prep: '', note: 'as written' };
     }
-    let qty = scaleOne(ing.quantity);
-    let [q, u] = toSystem(qty, ing.unit, system);
-    q = roundCooking(q, u);
-    let amount = formatQuantity(q);
+    let q, u, amount;
     if (ing.quantity_max != null) {
-      let [qm, um] = toSystem(scaleOne(ing.quantity_max), ing.unit, system);
-      qm = roundCooking(qm, um);
-      amount += '–' + formatQuantity(qm);
-      u = um;
+      // Pick the display unit from the max end (its larger magnitude decides any
+      // promotion, e.g. ml->l), then express the low end in that same unit so
+      // the range reads consistently (mirrors shopping_list._to_display).
+      let qm;
+      [qm, u] = toSystem(scaleOne(ing.quantity_max), ing.unit, system);
+      q = roundCooking(convert(scaleOne(ing.quantity), ing.unit, u), u);
+      qm = roundCooking(qm, u);
+      amount = formatQuantity(q) + '–' + formatQuantity(qm);
+    } else {
+      [q, u] = toSystem(scaleOne(ing.quantity), ing.unit, system);
+      amount = formatQuantity(roundCooking(q, u));
     }
     return { amount, unit: LABELS[u] || '', name: ing.name || ing.raw_text, prep: ing.note || '', note: '' };
   }
