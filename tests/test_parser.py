@@ -95,9 +95,52 @@ def test_fluid_ounce_two_word_unit():
     assert r["name"] == "milk"
 
 
+def test_fluid_ounce_abbreviation_with_periods():
+    r = parse_ingredient("8 fl. oz. milk")
+    assert r["unit"] == "fl_oz"
+    assert r["name"] == "milk"
+
+
 def test_ounce_defaults_to_weight():
     r = parse_ingredient("4 oz butter")
     assert r["unit"] == "oz"
+
+
+def test_dual_measure_slash_no_space():
+    # "100g/3.5oz" is one quantity written two ways; keep the first, drop the
+    # redundant alternate (the app converts units itself).
+    r = parse_ingredient("100g/3.5oz flour")
+    assert r["quantity"] == 100
+    assert r["unit"] == "g"
+    assert r["name"] == "flour"
+
+
+def test_dual_measure_slash_with_spaces():
+    r = parse_ingredient("100 g / 3.5 oz flour")
+    assert r["quantity"] == 100
+    assert r["unit"] == "g"
+    assert r["name"] == "flour"
+
+
+def test_dual_measure_imperial_first():
+    r = parse_ingredient("1 lb / 450 g flour")
+    assert r["quantity"] == 1
+    assert r["unit"] == "lb"
+    assert r["name"] == "flour"
+
+
+def test_fraction_not_mistaken_for_dual_measure():
+    r = parse_ingredient("1/2 cup milk")
+    assert r["quantity"] == 0.5
+    assert r["unit"] == "cup"
+    assert r["name"] == "milk"
+
+
+def test_mixed_number_not_mistaken_for_dual_measure():
+    r = parse_ingredient("1 1/2 tbsp oil")
+    assert r["quantity"] == 1.5
+    assert r["unit"] == "tbsp"
+    assert r["name"] == "oil"
 
 
 def test_leading_noise_removed():

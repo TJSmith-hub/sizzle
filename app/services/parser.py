@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 
-from app.services.units import normalize_unit
+from app.services.units import UNIT_WORDS, normalize_unit
 
 # Unicode fractions -> ascii equivalents.
 _UNICODE_FRACTIONS = {
@@ -43,6 +43,31 @@ _NUMBER_RE = re.compile(
 _LEADING_NOISE_RE = re.compile(
     r"^\s*(about|approx\.?|approximately|around|roughly)\s+", re.IGNORECASE
 )
+
+# Single-token unit words (longest first), used to spot a unit right after a
+# number, e.g. the "g"/"oz" in a "100g/3.5oz" dual measurement.
+_UNIT_ALT = "|".join(
+    sorted(
+        (re.escape(u) for u in UNIT_WORDS if " " not in u and u != "#"),
+        key=len,
+        reverse=True,
+    )
+)
+
+# A quantity written twice in different units, joined by "/" (e.g. "100g/3.5oz"
+# or "1 lb / 450 g"). Recipes often list both metric and imperial; we keep the
+# first value and drop the redundant alternate, since the app converts units for
+# display itself. The leading number must be immediately followed by a unit, so
+# a bare fraction ("1/2 cup") or mixed number ("1 1/2 tbsp") never matches.
+_DUAL_MEASURE_RE = re.compile(
+    rf"^(?P<keep>\s*\d*\.?\d+\s*(?:{_UNIT_ALT})\b)\s*/\s*\d*\.?\d+\s*(?:{_UNIT_ALT})\b",
+    re.IGNORECASE,
+)
+
+
+def _strip_dual_measure(text: str) -> str:
+    """Reduce a "100g/3.5oz" style dual measurement to just its first value."""
+    return _DUAL_MEASURE_RE.sub(lambda m: m.group("keep") + " ", text, count=1)
 
 
 def normalize_unicode_fractions(text: str) -> str:
@@ -92,9 +117,11 @@ def _extract_unit(rest: str) -> tuple[str | None, str]:
 
     tokens = rest.split()
 
-    # Two-word unit (e.g. "fluid ounces", "fl oz").
+    # Two-word unit (e.g. "fluid ounces", "fl oz", "fl. oz."). Strip periods off
+    # each token before rejoining, so an interior period ("fl. oz.") doesn't
+    # defeat the lookup the way strip(".") on the joined string would.
     if len(tokens) >= 2:
-        two = f"{tokens[0]} {tokens[1]}".lower().strip(".")
+        two = f"{tokens[0].strip('.')} {tokens[1].strip('.')}".lower()
         unit = normalize_unit(two)
         if unit:
             return unit, " ".join(tokens[2:]).strip()
@@ -253,6 +280,7 @@ def parse_ingredient(raw: str) -> dict:
 
     work = normalize_unicode_fractions(raw_text)
     work = _LEADING_NOISE_RE.sub("", work)
+    work = _strip_dual_measure(work)
 
     # Detect a leading range like "1-2 cups" / "1 to 2 cups".
     quantity: float | None = None
