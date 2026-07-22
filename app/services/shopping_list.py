@@ -70,6 +70,18 @@ class DisplayItem:
     def display_unit(self) -> str:
         return units.unit_label(self.unit)
 
+    def display_ml_hint(self) -> str:
+        """Return the ml equivalent shown alongside a cup measurement, else ''.
+
+        e.g. "(240 ml)" for 1 cup, "(240–480 ml)" for a 1–2 cup range.
+        """
+        if self.unit != "cup" or self.quantity is None:
+            return ""
+        text = str(units.cup_to_ml(self.quantity))
+        if self.quantity_max is not None:
+            text += "–" + str(units.cup_to_ml(self.quantity_max))
+        return f"({text} ml)"
+
 
 def _to_display(item: ShoppingListItem, system: str) -> DisplayItem:
     qty, qty_max, unit = item.quantity, item.quantity_max, item.unit

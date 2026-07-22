@@ -36,7 +36,7 @@
                   <li>
                     <span class="line">{{ item.name }}{% if item.note %}, <span class="note">{{ item.note }}</span>{% endif %}</span>
                     <span class="dots"></span>
-                    <span class="pqty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
+                    <span class="pqty">{{ item.display_quantity() }} {{ item.display_unit() }} {{ item.display_ml_hint() }}</span>
                   </li>
                 {% endfor %}
               </ul>

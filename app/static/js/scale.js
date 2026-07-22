@@ -55,6 +55,10 @@
     return oz >= 16 ? [oz / 16, 'lb'] : [oz, 'oz'];
   }
 
+  // ml equivalent of a cup quantity, rounded UP to the nearest 10 ml. Shown
+  // alongside cups as a metric hint (mirrors units.cup_to_ml).
+  function cupToMl(cups) { return Math.ceil((cups * TO_BASE.cup) / 10) * 10; }
+
   function roundCooking(qty, unit) {
     if (qty == null) return qty;
     const t = mtype(unit);
@@ -179,23 +183,28 @@
 
   function renderIngredientText(ing) {
     if (!ing.parsed || ing.quantity == null) {
-      return { amount: '', unit: '', name: ing.raw_text, prep: '', note: 'as written' };
+      return { amount: '', unit: '', mlHint: '', name: ing.raw_text, prep: '', note: 'as written' };
     }
-    let q, u, amount;
+    let q, u, qm = null, amount;
     if (ing.quantity_max != null) {
       // Pick the display unit from the max end (its larger magnitude decides any
       // promotion, e.g. ml->l), then express the low end in that same unit so
       // the range reads consistently (mirrors shopping_list._to_display).
-      let qm;
       [qm, u] = toSystem(scaleOne(ing.quantity_max), ing.unit, system);
       q = roundCooking(convert(scaleOne(ing.quantity), ing.unit, u), u);
       qm = roundCooking(qm, u);
       amount = formatQuantity(q) + '–' + formatQuantity(qm);
     } else {
       [q, u] = toSystem(scaleOne(ing.quantity), ing.unit, system);
-      amount = formatQuantity(roundCooking(q, u));
+      q = roundCooking(q, u);
+      amount = formatQuantity(q);
     }
-    return { amount, unit: LABELS[u] || '', name: ing.name || ing.raw_text, prep: ing.note || '', note: '' };
+    // Show a ml equivalent alongside cups (mirrors DisplayItem.display_ml_hint).
+    let mlHint = '';
+    if (u === 'cup') {
+      mlHint = '(' + cupToMl(q) + (qm != null ? '–' + cupToMl(qm) : '') + ' ml)';
+    }
+    return { amount, unit: LABELS[u] || '', mlHint, name: ing.name || ing.raw_text, prep: ing.note || '', note: '' };
   }
 
   function render() {
@@ -217,7 +226,7 @@
         if (r.amount) {
           const a = document.createElement('span');
           a.className = 'amount';
-          a.textContent = (r.amount + ' ' + r.unit).trim() + ' ';
+          a.textContent = (r.amount + ' ' + r.unit + (r.mlHint ? ' ' + r.mlHint : '')).trim() + ' ';
           li.appendChild(a);
         }
         li.appendChild(document.createTextNode(r.name));

@@ -64,6 +64,32 @@ def test_build_shopping_view_count_range_unconverted():
     assert item.display_quantity() == "1–2"
 
 
+def test_ml_hint_shown_for_cup_single():
+    items = [_item(id=1, name="flour", quantity=1, unit="cup")]
+    aisles = build_shopping_view(items, "metric")
+    item = aisles[0]["items"][0]
+    assert item.unit == "cup"
+    assert item.display_ml_hint() == "(240 ml)"
+
+
+def test_ml_hint_shown_for_cup_range():
+    items = [_item(id=1, name="stock", quantity=1, quantity_max=2, unit="cup")]
+    aisles = build_shopping_view(items, "metric")
+    item = aisles[0]["items"][0]
+    assert item.display_ml_hint() == "(240–480 ml)"
+
+
+def test_ml_hint_absent_for_non_cup_units():
+    items = [
+        _item(id=1, name="milk", quantity=500, unit="ml"),
+        _item(id=2, name="eggs", quantity=6, unit=None),
+    ]
+    aisles = build_shopping_view(items, "metric")
+    for aisle in aisles:
+        for item in aisle["items"]:
+            assert item.display_ml_hint() == ""
+
+
 def test_build_shopping_view_no_quantity_renders_blank():
     items = [_item(id=1, name="salt", quantity=None)]
     aisles = build_shopping_view(items, "metric")

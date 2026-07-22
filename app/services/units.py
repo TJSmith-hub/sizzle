@@ -14,6 +14,7 @@ so that server-side (shopping list) and client-side (live scaling) output agree.
 """
 from __future__ import annotations
 
+import math
 import re
 from fractions import Fraction
 
@@ -195,6 +196,15 @@ def unit_label(unit: str | None) -> str:
     if unit is None:
         return ""
     return UNIT_LABELS.get(unit, unit)
+
+
+def cup_to_ml(cups: float) -> int:
+    """Return a cup quantity's ml equivalent, rounded UP to the nearest 10 ml.
+
+    Cups are kept as cups for display, but we show this alongside them as a
+    metric hint (e.g. "1 cup (240 ml)"). Mirrored in scale.js.
+    """
+    return int(math.ceil(cups * TO_BASE["cup"] / 10.0) * 10)
 
 
 # --- Rounding & formatting (mirrored in scale.js) --------------------------

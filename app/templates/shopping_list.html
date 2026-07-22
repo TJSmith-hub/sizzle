@@ -58,7 +58,7 @@
                       {% if item.note %}<span class="note">({{ item.note }})</span>{% endif %}
                       {% if item.source %}<span class="source">from {{ item.source }}</span>{% endif %}
                     </span>
-                    <span class="qty">{{ item.display_quantity() }} {{ item.display_unit() }}</span>
+                    <span class="qty">{{ item.display_quantity() }} {{ item.display_unit() }} {{ item.display_ml_hint() }}</span>
                   </label>
                   <div class="row-controls">
                     <button type="button" class="btn btn-xs edit-toggle">✎</button>
