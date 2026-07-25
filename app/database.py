@@ -43,33 +43,49 @@ def init_db() -> None:
     from app import models  # noqa: F401, PLC0415
 
     Base.metadata.create_all(bind=engine)
-    _ensure_columns()
+    _sync_columns(engine)
 
 
-def _ensure_columns() -> None:
-    """Add any model columns missing from an already-created database.
+def _sync_columns(target_engine) -> None:
+    """Reconcile every mapped table's columns with the live database schema.
 
     ``create_all`` only creates missing *tables*, never alters existing ones, so
-    when a new column is introduced this backfills it on older SQLite files with
-    a lightweight ADD COLUMN. It compares every mapped table against the live
-    schema rather than hard-coding one column, so future additions need no change
-    here. Only *nullable* columns can be added this way (SQLite can't append a
-    NOT NULL column to a populated table); every post-v1 column so far has been.
+    when a model's columns change this brings an older SQLite file into line with
+    a couple of lightweight ALTERs. It compares each mapped table against the
+    live schema rather than hard-coding column names, so future changes need no
+    edits here:
+
+    * **Add** model columns the table is missing. Only *nullable* columns can be
+      added this way (SQLite can't append a NOT NULL column to a populated
+      table); every post-v1 column so far has been.
+    * **Drop** columns the model no longer defines. Without this, a column
+      removed from a model lingers -- and an old ``NOT NULL`` column with no
+      default breaks every insert, since the ORM never supplies a value for it.
+
+    Only mapped tables are touched; anything not backed by a model is left alone.
     """
     from app import models  # noqa: F401, PLC0415 - register models; avoids circular import
 
-    inspector = inspect(engine)
+    inspector = inspect(target_engine)
     existing_tables = set(inspector.get_table_names())
 
     for table in Base.metadata.sorted_tables:
         if table.name not in existing_tables:
             continue  # create_all already built this table in full
-        have = {c["name"] for c in inspector.get_columns(table.name)}
+        live_cols = {c["name"] for c in inspector.get_columns(table.name)}
+        model_cols = {c.name for c in table.columns}
+
+        # Add nullable model columns the table is missing.
         for column in table.columns:
-            if column.name in have or not column.nullable:
+            if column.name in live_cols or not column.nullable:
                 continue
-            ddl = column.type.compile(engine.dialect)
-            with engine.begin() as conn:
+            ddl = column.type.compile(target_engine.dialect)
+            with target_engine.begin() as conn:
                 conn.execute(
                     text(f"ALTER TABLE {table.name} ADD COLUMN {column.name} {ddl}")
                 )
+
+        # Drop columns the model no longer defines.
+        for name in live_cols - model_cols:
+            with target_engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table.name} DROP COLUMN {name}"))
