@@ -61,12 +61,7 @@ def shopping_print(request: Request, db: Session = Depends(get_db), system: str 
     system = _system(system)
     items = _all_items(db)
     aisles = build_shopping_view(items, system) if items else []
-    sources = sorted({i.source for i in items if i.source})
-    return templates.TemplateResponse(
-        request,
-        "shopping_print.html",
-        {"aisles": aisles, "system": system, "sources": sources},
-    )
+    return templates.TemplateResponse(request, "shopping_print.html", {"aisles": aisles})
 
 
 @router.post("/shopping-list/add-recipes")

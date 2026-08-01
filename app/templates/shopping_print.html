@@ -13,15 +13,6 @@
   {% endfor %}
 
   <div class="print-sheet">
-    <header class="print-header">
-      <h1>Shopping list</h1>
-      {% if sources %}<p class="print-sources">{{ sources | join(' · ') }}</p>{% endif %}
-      <p class="print-meta">
-        <span>{{ system | capitalize }} units</span>
-        <span id="print-date"></span>
-      </p>
-    </header>
-
     {% if not ns.total %}
       <p class="print-empty">Nothing left to buy — every item is checked off.</p>
     {% else %}
@@ -31,11 +22,10 @@
           {% if unchecked %}
             <section class="print-aisle">
               <h2>{{ section.aisle | aisle_label }}</h2>
-              <ul>
+              <ul class="print-items">
                 {% for item in unchecked %}
                   <li>
                     <span class="line">{{ item.name }}{% if item.note %}, <span class="note">{{ item.note }}</span>{% endif %}</span>
-                    <span class="dots"></span>
                     <span class="pqty">{{ item.display_quantity() }} {{ item.display_unit() }} {{ item.display_ml_hint() }}</span>
                   </li>
                 {% endfor %}
@@ -45,19 +35,8 @@
         {% endfor %}
       </div>
     {% endif %}
-
-    <footer class="print-foot">🔥 Sizzle</footer>
   </div>
 
   <button class="print-btn no-print" onclick="window.print()">Print this list</button>
-
-  <script>
-    (function () {
-      var el = document.getElementById('print-date');
-      if (el) el.textContent = new Date().toLocaleDateString(undefined, {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      });
-    })();
-  </script>
 </body>
 </html>
